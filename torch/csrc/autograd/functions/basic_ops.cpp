@@ -22,6 +22,7 @@ auto DelayedError::apply(const variable_list& inputs) -> variable_list {
   });
 };
 
+// Add function, 可以看到 ，apply 的时候，是 variable_list 作为输入， variable_list 作为输出。
 auto Add::apply(const variable_list& inputs) -> variable_list {
   check_input_variables("Add", inputs, 2);
   auto& input1 = inputs[0].data();

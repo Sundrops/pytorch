@@ -10,10 +10,17 @@ using namespace at;
 
 namespace torch { namespace autograd {
 
+// 将 Tensor 和 grad_fn 一起打包成一个 Variable
 Variable make_variable(at::Tensor data, std::shared_ptr<Function> grad_fn) {
   TORCH_ASSERT(grad_fn);
+  // grad_fn 的 is_executable, 来做当前 变量的 requires_grad, false 指代的是 volatile
   auto flags = VarFlags(grad_fn->is_executable, false);
+
+  // output_nr 表示的  grad_fn 的输入个数， grad_fn 的输入个数等价于 forward 的输出个数， 所以这么操作没毛病
+  // 现在就是在 制作 forward 的 输出 Variable
   int output_nr = grad_fn->num_inputs++;
+
+  // make_variable 返回一个 Variable 对象，
   return make_variable(std::move(data), flags, output_nr, std::move(grad_fn));
 }
 

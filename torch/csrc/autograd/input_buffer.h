@@ -5,6 +5,10 @@
 // values in-place (adding an input twice will accumulate the result).
 // This behaviour needed and used only in backward graphs.
 
+
+// 1. accumulates a list of Variables for use by a function
+// 2. 
+
 #include <Python.h>
 #include <vector>
 #include <utility>
@@ -16,6 +20,7 @@
 namespace torch { namespace autograd {
 
 struct InputBuffer {
+  // size 表示 有几个 <Variable, int> pair
   explicit InputBuffer(size_t size);
   InputBuffer(const InputBuffer& other) = delete;
   InputBuffer(InputBuffer&& other) = default;
@@ -30,6 +35,7 @@ struct InputBuffer {
 
 private:
   // (Variable, version at save)
+  // Variables, pair 中的 int 代表 version
   std::vector<std::pair<Variable, int>> buffer;
 };
 

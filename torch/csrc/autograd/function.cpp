@@ -8,6 +8,7 @@
 
 namespace torch { namespace autograd {
 
+// 如何根据 inputs 来计算 Function 的 flags
 template<typename T>
 auto makeFlags(const T &inputs) -> FunctionFlags {
   int num_inputs = inputs.size();
@@ -20,9 +21,11 @@ auto makeFlags(const T &inputs) -> FunctionFlags {
     for (auto it = inputs.begin(); it != inputs.end(); ++it, ++i) {
       auto& var = *it;
       if (var.defined()) {
-        f.is_executable |= var.requires_grad();
-        f.is_volatile |= var.is_volatile();
-        if (var.grad_fn()) {
+        f.is_executable |= var.requires_grad();  // 只要有一个 var.requires_grad() = true, f.is_executable 就为 true
+        f.is_volatile |= var.is_volatile(); // 只要有一个 var.is_voaltile()=true, f.is_volatile 就为 true
+        
+        //首先，这里可以看出， 有几个 inputs variables，就有几个 next_function , next_functions 中就记录着 反向传导时，下一步要操作的 function
+        if (var.grad_fn()) { // 如果 var 不是 叶子节点，
           f.next_functions[i] = std::make_pair<>(var.grad_fn(), var.output_nr());
         } else {
           f.next_functions[i] = std::make_pair<>(var.grad_accumulator(), 0);
@@ -30,7 +33,8 @@ auto makeFlags(const T &inputs) -> FunctionFlags {
       }
     }
   }
-  f.is_executable &= !f.is_volatile;
+  f.is_executable &= !f.is_volatile; // 只有 f.is_executable=true 和 f.is_volatile=false 同时成立，f.is_executable=true
+  // 只有 f.is_executable = true， 才可对 此函数求导！！！！
   return f;
 }
 

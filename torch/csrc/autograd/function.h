@@ -38,6 +38,9 @@ struct edge_hasher {
 };
 
 // State used to create "backward" functions
+// 创建 backward 函数时用的 Flag
+// 函数是否 is_executable, is_volatile
+// next_functions 意义很迷惑
 struct FunctionFlags {
   // Roughly speaking, is_executable corresponds to requires_grad.
   // See http://pytorch.org/docs/notes/autograd.html for more details:
@@ -51,6 +54,7 @@ struct FunctionFlags {
   function_list next_functions;
 };
 
+// Function， 计算输入，得到输出
 struct Function : std::enable_shared_from_this<Function> {
   Function()
     : num_inputs(0)
@@ -80,7 +84,8 @@ struct Function : std::enable_shared_from_this<Function> {
   // NOTE: Don't call this function directly. Use apply_fn or operator() instead.
   virtual variable_list apply(const variable_list& inputs) = 0;
   variable_list tracedApply(variable_list inputs);
-
+  
+  // 函数的前向计算， 输入 variable_list 输出 variable_list
   variable_list operator()(const variable_list& inputs) {
     profiler::RecordFunction rec(this);
     if (jit::tracer::isTracing(inputs)) {
@@ -102,15 +107,19 @@ struct Function : std::enable_shared_from_this<Function> {
   static FunctionFlags flags(at::TensorList inputs);
 
   // Releases saved variables if the operation won't be reused
+  // 这个在什么时候 释放？？？
   virtual inline void releaseVariables() {}
 
   // Function name for debugging
   virtual std::string name();
 
   inline bool should_compute_output(int i) const {
+    // 梯度函数， is_executable   ??????????????????????????
     auto& fn = next_functions[i].first;
     return fn && fn->is_executable;
   }
+
+  // 这个是干嘛的？？？ should compute any outputs ???
 
   inline bool should_compute_any_outputs() const {
     for (size_t i = 0; i < next_functions.size(); ++i) {
@@ -127,6 +136,7 @@ struct Function : std::enable_shared_from_this<Function> {
     });
   }
 
+  // 给函数 设置 flags
   inline void set_flags(FunctionFlags&& flags) {
     is_executable = flags.is_executable;
     next_functions = std::move(flags.next_functions);
@@ -156,6 +166,9 @@ struct Function : std::enable_shared_from_this<Function> {
 
   static void setUpContextEdge(jit::Node* this_node, int ctx_output_nr,
                                const variable_list& inputs, const variable_list& outputs);
+
+  // Function 的属性，num_inputs, next_functions, 是否可执行，是否是随机的， pre_hooks, post_hooks
+  // 这个是否可执行代表的是 是否可反向求导
 
   int num_inputs;
   function_list next_functions;

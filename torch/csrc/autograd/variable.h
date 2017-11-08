@@ -23,6 +23,7 @@ using at::Tensor;
 struct VariableImpl;
 
 // TODO: fix name conflict with jit VariableFlags
+// 变量的 flag， requires_grad 和 is_volatile
 struct VarFlags {
   constexpr VarFlags(bool requires_grad, bool is_volatile)
     : requires_grad(requires_grad), is_volatile(is_volatile) {}
@@ -33,6 +34,7 @@ struct VarFlags {
 
 constexpr VarFlags DEFAULT_FLAGS = {false, false};
 
+// Variable 是一个 Tensor 的子类
 struct Variable : public at::Tensor {
   inline Variable(VariableImpl * self, bool retain);
   Variable() : Tensor() {}
@@ -115,6 +117,7 @@ public:
     _grad_fn = std::move(grad_fn);
   }
 
+  // VariableImpl 中 有 数据，有 梯度，有 _grad_fn， 有 hooks。 
   at::Tensor data;
   Variable grad;
   std::shared_ptr<Function> _grad_fn;
@@ -295,3 +298,6 @@ inline Variable & Variable::operator=(const Tensor & rhs) & {
 }
 
 }} // namespace torch::autograd
+
+
+// 理一下 Variable， VariableImpl, Tensor, TensorImpl

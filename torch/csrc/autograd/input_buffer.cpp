@@ -15,12 +15,13 @@ void InputBuffer::add(size_t pos, Variable var) {
   if (!var.defined()) {
     return;
   }
-  auto& item = buffer[pos];
+  auto& item = buffer[pos];  //position
   if (!item.first.defined()) {
     auto current_version = var.current_version();
     buffer[pos] = std::make_pair<>(std::move(var), current_version);
   } else {
     auto result = apply_fn<Add>()(item.first, std::move(var));
+    // 这里的  version 咋都是 0 来着？？？？
     buffer[pos] = std::make_pair<>(std::move(result), 0);
   }
 }
