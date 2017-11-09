@@ -134,6 +134,10 @@ void compute_partial_exec_callbacks(const function_list& roots,
 PyObject *THPEngine_run_backward(THPEngine *self, PyObject *args, PyObject *kwargs)
 {
   HANDLE_TH_ERRORS
+
+  // Variable._execution_engine.run_backward(variables, grad_variables, retain_graph)
+  // 这是 python 中的代码
+
   PyObject *variables = NULL;
   PyObject *grad_variables = NULL;
   unsigned char keep_graph = 0;
@@ -155,7 +159,8 @@ PyObject *THPEngine_run_backward(THPEngine *self, PyObject *args, PyObject *kwar
   Py_ssize_t num_gradients = PyTuple_GET_SIZE(grad_variables);
   THPUtils_assert(num_variables == num_gradients, "got %ld variables and %ld "
       "gradients", num_variables, num_gradients);
-
+  
+  // function 的 个数 是要和 num_variables 的个数一样吗？ 如果 一个 function 有两个输出呢？
   function_list roots(num_variables);
   variable_list grads(num_variables);
   for (int i = 0; i < num_variables; i++) {
@@ -163,6 +168,8 @@ PyObject *THPEngine_run_backward(THPEngine *self, PyObject *args, PyObject *kwar
     THPUtils_assert(THPVariable_Check(_variable), "element %d of variables "
         "tuple is not a Variable", i);
     auto& variable = ((THPVariable*)_variable)->cdata;
+
+    // 如果 variables 中有一个 variable volatile=true 的话， 那么会报错
     THPUtils_assert(!variable.is_volatile(),
         "element %d of variables tuple is volatile", i);
     // If grad_fn is NULL (as is the case for a leaf node), we instead

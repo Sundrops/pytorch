@@ -22,12 +22,18 @@ struct GraphTask;
 
 // A single instance of this struct should be created through the whole process lifetime.
 // The worker thread creation logic and Engine's destructor rely on this.
+// 一个进程，只有一个 Engine
+
 struct Engine {
   Engine();
   virtual ~Engine();
-
+  // ready_queue_type 是个 double-ended-queue, 里面存放的是一个 pair <Function, InputBuffer>， 存放的是 前向还是方向？ InputBuffer 是对应于啥的？
   using ready_queue_type = std::deque<std::pair<std::shared_ptr<Function>, InputBuffer>>;
+
+  // function_queue 是一个 存放 Function 的 vector，
   using function_queue = std::vector<Function*>;
+
+  // 依赖类型， 无序 字典，  <Function*, int>, 这个 int 表示的是啥， 这个 Function* 是什么 Function。
   using dependencies_type = std::unordered_map<Function*, int>;
 
   using pre_callback_type = std::function<bool (Function*, variable_list&)>;

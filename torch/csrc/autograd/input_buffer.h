@@ -8,6 +8,7 @@
 
 // 1. accumulates a list of Variables for use by a function
 // 2. 
+// 研究一下这个类在什么时候用到
 
 #include <Python.h>
 #include <vector>

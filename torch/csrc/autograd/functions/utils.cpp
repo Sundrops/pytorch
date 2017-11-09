@@ -12,7 +12,9 @@ namespace torch { namespace autograd {
 variable_list wrap_outputs(const variable_list& inputs, tensor_list&& outputs,
                            function_constructor ctr) {
 
-  // 使用 inputs variables 来计算 Function 的 flag (f.is_executable, f.is_volatile)
+  // 使用 inputs variables 来计算 反向传导的 Function 的 flag (f.is_executable, f.is_volatile)和 next_functions
+  // 这里需要搞清楚的一点是：inputs 是前向传导的 inputs，从它可获得的信息有：当前 函数的 反向传导函数 是否 可执行， next_functions 是什么？？？
+
   auto flags = Function::flags(inputs);
   variable_list result;
 
@@ -30,7 +32,7 @@ variable_list wrap_outputs(const variable_list& inputs, tensor_list&& outputs,
   } else {  // 如果 volatile=false， 难道也不管 is_executable 了吗？ 
     // ctr 是一个 lambda 函数， 它返回一个 std::shared_ptr<GradFn>
     // 梯度 使用 Function::flags 计算出来的 flags 其实是给 Backward 用的。
-    auto grad_fn = ctr(std::move(flags));  // 用 flags 创建出来一个 Function。
+    auto grad_fn = ctr(std::move(flags));  // 用 flags(is_executable, is_volatile) 创建出来一个 Function。
     for (auto& output : outputs) {
       if (output.defined()) {
         result.emplace_back(make_variable(output, grad_fn));

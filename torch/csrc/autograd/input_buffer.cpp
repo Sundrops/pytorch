@@ -10,6 +10,7 @@ InputBuffer::InputBuffer(size_t size)
   : buffer(size)
   {}
 
+
 void InputBuffer::add(size_t pos, Variable var) {
   TORCH_ASSERT(pos >= 0 && pos < buffer.size());
   if (!var.defined()) {

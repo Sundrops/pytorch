@@ -35,12 +35,14 @@ static thread_local int worker_device = NO_DEVICE;
 // on it in a few places (e.g. AccumulateGrad function).
 
 struct FunctionTask {
+  // 每个 FunctionTask 中都维护着一个 base GraphTask
   GraphTask* base;
-  std::shared_ptr<Function> fn;
+  std::shared_ptr<Function> fn; //这个是个反向求导函数
   // This buffer serves as an implicit "addition" node for all of the
   // gradients flowing here.  Once all the dependencies are finished, we
   // use the contents of this buffer to run the function.
-  InputBuffer inputs;
+  // buffer 是用来累积梯度的
+  InputBuffer inputs; // 反向求导函数的输入
 
   FunctionTask(GraphTask* base, std::shared_ptr<Function> fn, InputBuffer inputs)
     : base(base)
@@ -49,7 +51,11 @@ struct FunctionTask {
 };
 
 struct ReadyQueue {
+  // queue 是 FunctionTask 的 一个 双端队列
   std::deque<FunctionTask> queue;
+
+  // std::condition_variable 条件变量，同步的时候会用到
+  // 用 unique_lock (over mutex) 来进行操作
   std::condition_variable not_empty;
   std::mutex mutex;
 
@@ -95,6 +101,8 @@ struct GraphTask {
 auto ReadyQueue::push_front(FunctionTask item) -> void {
   {
     std::lock_guard<std::mutex> lock(mutex);
+    // -> 的优先级 大于 ++
+    // GraphTask 记录了 outstanding_tasks，
     ++item.base->outstanding_tasks;
     queue.push_front(std::move(item));
   }
@@ -103,6 +111,7 @@ auto ReadyQueue::push_front(FunctionTask item) -> void {
 
 auto ReadyQueue::pop_back() -> FunctionTask {
   std::unique_lock<std::mutex> lock(mutex);
+  // 如果 queue 为 空时， 也会阻塞 线程
   not_empty.wait(lock, [this]{ return !queue.empty(); });
   auto task = std::move(queue.back()); queue.pop_back();
   return task;
@@ -181,6 +190,8 @@ auto Engine::thread_on_exception(FunctionTask& task, std::exception& e) -> void 
   }
 }
 
+// 从这可以看出， pre_hooks 和 post_hooks 都是注册在 Function 上的。
+
 static variable_list call_pre_hooks(Function& fn, variable_list inputs) {
   for (auto& hook : fn.pre_hooks) {
     inputs = (*hook)(inputs);
@@ -216,14 +227,18 @@ static variable_list call_function(FunctionTask& task) {
   return call_post_hooks(fn, std::move(outputs), std::move(inputs));
 }
 
+// 计算 FuntionTask， 反向求导计算
 auto Engine::evaluate_function(FunctionTask& task) -> void {
+  // outputs， 是梯度的 输出
   auto outputs = call_function(task);
 
   auto& fn = *task.fn;
   if (!task.base->keep_graph) {
+    // 如果不需要 keep graph 的话， 就直接 释放 变量就好了。
     fn.releaseVariables();
   }
-
+  
+  // 似乎这是反向求导的时候用的。。。。。。。奥奥， 明白了， pytorch 中的图是一个 反向求导图！！！？？？？
   if (outputs.size() != fn.next_functions.size()) {
     std::stringstream ss;
     ss << "Function '" << fn.name() << "' returned an invalid number of outputs - expected ";
@@ -247,15 +262,21 @@ auto Engine::evaluate_function(FunctionTask& task) -> void {
       continue;
     }
 
+    // 这里用的是 GraphTask 的mutex， 整个图（BP图，反向传导图）都被锁住咯
     std::lock_guard<std::mutex> lock(task.base->mutex);
+    
     // Check if the next function is ready to be computed
+    // 当前这个 Function 被计算过后， 这个 function 的 next_functions 的 denpendencies 都会 -1
     bool is_ready = false;
     auto& dependencies = task.base->dependencies;
+
+    // next_fn： 下一个要计算的反向求导函数。
     auto it = dependencies.find(next_fn.get());
     if (it == dependencies.end()) {
       auto name = next_fn->name();
       throw std::runtime_error(std::string("dependency not found for ") + name);
     } else if (--it->second == 0) {
+      // 确定 next_function 是否准备好了
       dependencies.erase(it);
       is_ready = true;
     }
@@ -309,21 +330,30 @@ auto Engine::find_stochastic_functions(function_queue& queue, Function* graph_ro
 }
 
 /** Computes the number of dependencies for each function which requires grad */
+// function_queue: std::vector<Function* >
 auto Engine::compute_dependencies(function_queue queue, GraphTask& task) -> void {
   // Just to make sure that they will never be added to the queue again
   std::unordered_set<Function*> seen(queue.begin(), queue.end());
 
   // Queue contains all nodes that will start propagating gradients.
   // We no longer have to expand functions that don't require grad.
+  // 
   auto& dependencies = task.dependencies;
+
+  //停止 条件为 queue 为 空
   while (queue.size() > 0) {
+    //  deque.back() 返回最后一个元素的引用， deque.pop_back(); 删除最后一个元素，返回为 void
     auto fn = std::move(queue.back()); queue.pop_back();
+    
     for (auto& next_fn_pair : fn->next_functions) {
       Function* next_ptr = next_fn_pair.first.get();
       if (!next_ptr) continue;
       if (!next_ptr->is_executable) continue;
       if (next_ptr->is_stochastic) continue; // Stochastic nodes were in the queue already
+      // 就算函数的依赖数量， 假设下一个函数需要当前函数传过去的梯度，那么下一个函数就依赖与当前 函数。
       dependencies[next_ptr] += 1;
+
+      // 如果没有见过 next_ptr, 就把 next_ptr 加到 queue 中。 全部遍历一遍， 所有反向传导函数的 dependencies 个数都会保存在 base.dependencies 中！！！！
       if (seen.count(next_ptr) == 0) {
         seen.insert(next_ptr);
         queue.push_back(next_ptr);

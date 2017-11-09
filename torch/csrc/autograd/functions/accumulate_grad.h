@@ -5,6 +5,9 @@
 
 namespace torch { namespace autograd {
 
+
+// 梯度的累加操作
+
 struct AccumulateGrad : public Function {
   AccumulateGrad(Variable variable);
 

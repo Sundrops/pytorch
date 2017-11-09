@@ -46,13 +46,14 @@ auto AddBackward_Deprecated::apply(const variable_list& grad_outputs) -> variabl
 };
 
 auto Mul::apply(const variable_list& inputs) -> variable_list {
+  // 这里在执行前向计算
   check_input_variables("Mul", inputs, 2);
   AutoGPU guard(inputs[0]);
   auto& input1 = inputs[0].data();
   auto& input2 = inputs[1].data();
 
   auto output = input1 * input2;
-
+  // 这里在记录反向传导图！！！！
   return wrap_outputs(inputs, as_tensor_list(std::move(output)), [&](FunctionFlags f) {
     return std::make_shared<MulBackward>(std::move(f));
   });
@@ -64,3 +65,10 @@ auto MulBackward::apply(const variable_list& grad_outputs) -> variable_list {
 };
 
 }} // namespace torch::autograd
+
+
+// 前向过程可以总结为：
+// 1. 创建一个 Function 对象
+// 2. 执行 对象函数调用，variable_list 作为实参
+// 3. 将 variable_list 中的 tensor 取出来，对其进行运算得到 Tensor outputs
+// 4. 将 outputs 包装成 Variable， 并创建 反向计算 的 Function。

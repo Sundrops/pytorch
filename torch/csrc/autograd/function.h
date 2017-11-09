@@ -25,6 +25,8 @@ struct Variable;
 
 using tensor_list = std::vector<at::Tensor>;
 using variable_list = std::vector<Variable>;
+
+// 这个 int 代表的是 此 grad_fn 所对应的 fn 的第几个 输出
 using edge_type = std::pair<std::shared_ptr<Function>, int>;
 using function_list = std::vector<edge_type>;
 using saved_variable_list = std::vector<SavedVariable>;
@@ -51,6 +53,7 @@ struct FunctionFlags {
   bool is_volatile = false;
   // What functions take the output of this function as input.
   // There is one function per output of this function.
+  // 
   function_list next_functions;
 };
 
