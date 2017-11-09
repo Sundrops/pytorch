@@ -7,7 +7,7 @@
 
 
 // 在计算梯度的时候， grad_fn 的 输入可能从 很多条路径上累积过来
-// 这个 类就是用来 累积 grad_fn 的输入
+// 这个类就是用来 累积 grad_fn 的输入
 
 #include <Python.h>
 #include <vector>
