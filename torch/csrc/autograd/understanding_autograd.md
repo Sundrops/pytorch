@@ -12,4 +12,57 @@
 1. pytorch 什么时候创建的 反向传导图，如何创建的
 2. Variable 的梯度怎么处理的， 因为一个 Variable 可能有多个方向 传回来的梯度
 
+看下反向传导的过程是啥样的：
 
+**Engine.execute() *
+
+1. 创建 GraphTask : {keep_graph, mutex, std::condition_variable not_done, std::unordered_map<Function*, InputBuffer> not_ready, std::unordered_map<Function*, int> dependencies, int owner}
+2. 做一个  graph_root（是个 Function）， 然后将其包装成 FunctionTask 放到 CPU 的 ReadyQueue 中！
+3. 计算 反向传导图中的 所有可计算函数的 依赖 个数 ，保存在 GraphTask 的 dependencies 中
+4. 如果 NO_DEVICE， 就不会执行下面代码
+5. 然后执行 Engin.thread_main(GraphTask* gt)
+    1. 从 Engine 的 ready_queues 中拿出 当前 worker_device 所对应的 ReadyQueue
+    2. 循环执行 Engine.evaluate_function(FunctionTask)： 从 相应的 ReadyQueue 中取出 FunctionTask（取的过程可能会阻塞）
+        1. 进行 FunctionTask 的计算
+        2. 遍历 当前 Function 的 所有 next_function, 将它们的 dependencies 减一， 看看他们是否已经 ready
+        3. 如果 ready， 通过 InputBuffer 的 device 来确定 将其 放入到 那个 ReadyQueue 中！ ？？？ InputBuffer 的 device如何确定的？？？
+        4. 如果没有准备好， 就放在 GraphTask 中的 not_ready map中。
+        5. 如果 graph_task->outstanding_tasks <= 0 则退出循环
+    3. 通过上面的循环， 可以执行完 GraphTask 中所有的 Function， 完成一次 BP
+    4. NO_DEVICE 操作操作
+
+     
+
+**ReadyQueue**
+
+*  
+* push_front(...)
+    * 会加锁，这个可以保证线程安全。
+    * 同时 GraphTask 的 outstanding_tasks 会加一
+    * not_empty 通知一次 
+* pop_back() -> FunctionTask
+    * 如果 queue 为空，则阻塞
+    * 否则，返回一个 FunctionTask
+
+
+## NO_DEVICE 在搞些什么
+
+```c++
+// execute 中, 如果是 NO_DEVICE 就不会执行 任何 FunctionTask ， 等着结束就好了
+if (worker_device == NO_DEVICE) {
+    // Wait for all tasks to complete
+    // thread_main 中有 notify_all 这个操作
+    // 第二个参数，返回为 true ， 则不阻塞 当前线程， 如果 为 false，即使 notify, 也不会释放
+    graph_task.not_done.wait(lock, [&graph_task]{ return graph_task.outstanding_tasks.load() == 0});
+}
+```
+
+```c++
+// thead_main 中
+if (base_owner == NO_DEVICE) {
+    if (--task.base->outstanding_tasks == 0) {
+        // 给 notify_all 加个锁
+        std::lock_guard<std::mutex> lock(task.base->mutex);
+        task.base->not_done.notify_all();
+}
+```

@@ -137,7 +137,10 @@ Engine::~Engine() = default;
 
 auto Engine::thread_init(int device) -> void {
   // 线程初始化干了什么事？？？？
+  // 设置一下线程个数？
   THInferNumThreads();
+
+  //设置 GPU 的使用
   AutoGPU guard(device);
 
   // thread_init 的时候，给了 worker_device 值， 每个 thread 一个
@@ -176,6 +179,8 @@ auto Engine::thread_main(GraphTask *graph_task) -> void {
         thread_on_exception(task, e);
       }
     }
+
+    // 取出 GraphTasker 的 owner， 是 worker_device
     auto base_owner = task.base->owner;
 
     // non-worker thread 是什么意思？？？
@@ -265,13 +270,15 @@ auto Engine::evaluate_function(FunctionTask& task) -> void {
   }
   
   // 似乎这是反向求导的时候用的。。。。。。。奥奥， 明白了， pytorch 中的图是一个 反向求导图！！！？？？？
+  // 判断当前 grad_fn 的返回值是否 和 next_functions 的个数一致， 如果不一致，则报错！！！
   if (outputs.size() != fn.next_functions.size()) {
     std::stringstream ss;
     ss << "Function '" << fn.name() << "' returned an invalid number of outputs - expected ";
     ss << fn.next_functions.size() << ", but got " << outputs.size();
     throw std::runtime_error(ss.str());
   }
-
+  
+  // 下面开始 对 next_function 做一些检查，看看他们是否已经 准备好计算了！！！
   int num_outputs = outputs.size();
   for (int i = 0; i < num_outputs; ++i) {
     auto& output = outputs[i];
@@ -288,9 +295,15 @@ auto Engine::evaluate_function(FunctionTask& task) -> void {
       continue;
     }
 
-    // 这里用的是 GraphTask 的mutex， 整个图（BP图，反向传导图）都被锁住咯
-    std::lock_guard<std::mutex> lock(task.base->mutex);
+    // 这里用的是 GraphTask 的mutex， 整个图（BP图/反向传导图）都被锁住咯
+    // 感觉 evaluation_function 可以并行啊， 这个函数可以并行操作啊！
     
+    std::lock_guard<std::mutex> lock(task.base->mutex);
+    /*
+     给 GraphTask 加锁后干了些啥
+     1. 将 next_functions 中的函数 放到 ReadyQueue 中还是 not_ready 中！！
+    */
+
     // Check if the next function is ready to be computed
     // 当前这个 Function 被计算过后， 这个 function 的 next_functions 的 denpendencies 都会 -1
     bool is_ready = false;
@@ -421,24 +434,37 @@ auto Engine::execute(const function_list& input_roots,
                      bool keep_graph,
                      const pre_callback_map& pre_callbacks,
                      const post_callback_map& post_callbacks) -> void {
+  
+  // 只需要执行一次的函数， 而且线程安全！！！！！
   std::call_once(start_threads_flag, &Engine::start_threads, this);
   // Callbacks are only valid for the duration of this run and should always be cleared
   // 这些 Callbacks 指的是什么？？？？？？？？？？？？？？？？？？
   ClearCallbacks _cb_guard(final_callbacks, post_callbacks_lock);
   
   // owner 默认为 NO_DEVICE, GraphTask 有个 owner
-  GraphTask graph_task(keep_graph, pre_callbacks, post_callbacks);
+  GraphTask graph_task(engine, pre_callbacks, post_callbacks);
 
-  // lock 为 unique lock
+  // lock 为 unique lock, 这儿加了个锁！！！！！！！！！！
   std::unique_lock<std::mutex> lock(graph_task.mutex);
-
+  /*
+  加锁的部分做的工作有：
+  1. 创建了 graph_root 并将其放入 CPU 的 ReadyQueue 中
+  2. 计算 反向传导图中 每个 Function 的依赖数量
+  3. 给 GraphTask 制定 owner = worker_device
+  4. 然后释放锁， 执行 thread_main 
+  */
+  
+  //这边的意思是，硬生生的搞出一个 graph 的 root 出来（Function）， 将 inputs 作为这个 roots 的 输出，将 inputs_roots 作为 这个 root 的 next_functions!!!!!!!
   auto graph_root = std::make_shared<GraphRoot>(input_roots, inputs);
+
+  // function_queue: std::vector<Function*>
   function_queue roots;
   for (auto entry : input_roots) {
     if (entry.first->is_executable) {
       graph_task.has_any_work = true;
       roots.push_back(graph_root.get());
-      // read_queue 返回一个 ReadyQueue， -1 为 device_id（代表CPU）, InputBuffer 为0 说明 root 的梯度不需要累积
+      // read_queue 返回一个 ReadyQueue， -1 为 device_id（代表CPU）, InputBuffer 为0 说明 root ,因为是 root， 没有输入，只有输出
+      // 把这个 造好的 graph root 的 FunctionTask 放到 CPU 的 ReadyQueue 中
       ready_queue(-1).push_front(FunctionTask(&graph_task, graph_root, InputBuffer(0)));
       break;
     }
@@ -453,9 +479,11 @@ auto Engine::execute(const function_list& input_roots,
   }
 
   // Now compute the dependencies for all executable functions
+  // 计算 反向计算图 中 所有 Function 的依赖， 放到 GraphTask 中的 std::unordered_map<Function*, int> dependencies 中
   compute_dependencies(std::move(roots), graph_task);
 
   // Not a worker
+  // NO_DEVICE 在 pytorch 中做什么工作呢？？？？？？？？？？？？？？？？
   if (worker_device == NO_DEVICE) {
     // Wait for all tasks to complete
     // thread_main 中有 notify_all 这个操作
@@ -499,6 +527,7 @@ auto Engine::ready_queue(int device) -> ReadyQueue& {
   return *ready_queues.at(device + 1);
 }
 
+// 这个线程如何理解， 开始了 就 detach 了呀！
 auto Engine::start_threads() -> void {
   int num_devices = 0;
 #ifdef WITH_CUDA
@@ -509,6 +538,7 @@ auto Engine::start_threads() -> void {
   }
 #endif
   // One for CPU, plus one for every GPU device
+  // 
   int num_threads = num_devices + 1;
   ready_queues = std::vector<std::shared_ptr<ReadyQueue>>(num_threads);
   for (auto& queue : ready_queues)

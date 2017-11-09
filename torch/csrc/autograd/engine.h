@@ -67,8 +67,11 @@ protected:
   virtual void thread_init(int device);
   virtual void thread_main(GraphTask *task);
   virtual void thread_on_exception(FunctionTask& task, std::exception& e);
-
+  
+  // 用来只执行一次的函数的标签
   std::once_flag start_threads_flag;
+  // Engine 保存了一个 ready_queues !!!!!!!!!!!!
+  // CPU 一个 ReadyQueue， GPUs 一个 ReadyQueue
   std::vector<std::shared_ptr<ReadyQueue>> ready_queues;
   std::vector<std::function<void()>> final_callbacks;
   std::mutex post_callbacks_lock;
