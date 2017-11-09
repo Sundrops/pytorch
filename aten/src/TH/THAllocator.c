@@ -27,6 +27,8 @@
 #endif
 /* end of stuff for mapped files */
 
+// THGeneral 的一个 包装
+// ctx 指的是啥， ptrdiff_t 
 static void *THDefaultAllocator_alloc(void* ctx, ptrdiff_t size) {
   return THAlloc(size);
 }

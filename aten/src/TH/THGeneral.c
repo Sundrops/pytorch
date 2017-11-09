@@ -225,6 +225,7 @@ static void* THAllocInternal(ptrdiff_t size)
   return ptr;
 }
 
+// 分配存储空间的代码
 void* THAlloc(ptrdiff_t size)
 {
   void *ptr;
@@ -234,7 +235,8 @@ void* THAlloc(ptrdiff_t size)
 
   if(size == 0)
     return NULL;
-
+  
+  // 实际是这个位置进行的 空间 分配  malloc
   ptr = THAllocInternal(size);
 
   if(!ptr && torchGCFunction) {
@@ -275,6 +277,7 @@ void* THRealloc(void *ptr, ptrdiff_t size)
   return newptr;
 }
 
+// 释放内存
 void THFree(void *ptr)
 {
   free(ptr);

@@ -868,6 +868,7 @@ struct AT_API Type {
   virtual std::vector<Tensor> split(Tensor self, int64_t split_size, int64_t dim=0) const;
   virtual std::vector<Tensor> chunk(Tensor self, int64_t chunks, int64_t dim=0) const;
 protected:
+  // 只有一个 Context 属性
   Context* context;
 };
 

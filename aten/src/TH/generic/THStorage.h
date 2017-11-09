@@ -25,8 +25,10 @@ typedef struct THStorage
 {
     real *data;
     ptrdiff_t size;
+    // 引用计数
     int refcount;
     char flag;
+    // 分配空间的 类
     THAllocator *allocator;
     void *allocatorContext;
     struct THStorage *view;

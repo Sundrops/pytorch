@@ -329,7 +329,7 @@ auto Engine::evaluate_function(FunctionTask& task) -> void {
       // 如果没有记录过，
       // No buffers have been allocated for the function
       InputBuffer input_buffer(next_fn->num_inputs);
-      // 梯度累加
+      // 梯度累加, inputs_buffer 是 next_fn 的 输入 缓存区， 缓存好了就可以拿着输入去操作了
       input_buffer.add(input_nr, std::move(output));
 
       // 如果 ready 的话， 意味着 所有的 gradient 都已经累积完毕，可以进行下一步操作了。

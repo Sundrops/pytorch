@@ -31,7 +31,10 @@
     3. 通过上面的循环， 可以执行完 GraphTask 中所有的 Function， 完成一次 BP
     4. NO_DEVICE 操作操作
 
-     
+
+**InputBuffer 的 device 是怎么得到的**
+
+    
 
 **ReadyQueue**
 
@@ -66,3 +69,7 @@ if (base_owner == NO_DEVICE) {
         task.base->not_done.notify_all();
 }
 ```
+
+## 疑问
+
+* engine 是但线程的？？？ 

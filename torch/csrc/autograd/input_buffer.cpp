@@ -30,6 +30,8 @@ void InputBuffer::add(size_t pos, Variable var) {
 auto InputBuffer::device() const -> int {
   for (auto& pair : buffer) {
     if (pair.first.defined() && pair.first.type().isCuda()) {
+
+      // 实际上调用的是 Variable 的 get_device().
       return pair.first.get_device();
     }
   }

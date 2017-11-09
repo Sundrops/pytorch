@@ -6,6 +6,8 @@
 namespace at { namespace detail {
 
 // TensorBase is the base class for Tensor which handles the reference counting
+// 处理 regerence counting
+
 struct TensorBase {
   TensorBase(): TensorBase(UndefinedTensor::singleton(), false) {}
   TensorBase(TensorImpl * self, bool retain)
@@ -29,6 +31,8 @@ struct TensorBase {
     if (pImpl != UndefinedTensor::singleton())
       pImpl->release();
   }
+
+  // Operator= 都有这么多的 骚操作
   TensorBase & operator=(TensorBase && rhs) & {
     rhs.swap(*this);
     return *this;
@@ -43,6 +47,8 @@ struct TensorBase {
   int64_t dim() const {
     return pImpl->dim();
   }
+
+  // 两个 TensorBase 交换一下 指向的 TensorImpl
   void swap(TensorBase & rhs) {
     TensorImpl * tmp = pImpl;
     pImpl = rhs.pImpl;
@@ -59,6 +65,7 @@ struct TensorBase {
 
   //TODO(zach): sort out friend structes
 public:
+  // 一个 TensorImpl* 属性！！！！！！！！！！！
   TensorImpl * pImpl;
 };
 

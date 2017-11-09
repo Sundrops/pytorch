@@ -10,9 +10,12 @@ namespace at {
 struct Type;
 class Scalar;
 
+
+// TensorImpl 中维护了一个 被引用计数，如果引用计数为 0 则 go die
 struct TensorImpl {
   explicit TensorImpl(Type * type)
   :  refcount(1), is_scalar(false), type_(type) {}
+
   Type & type() const {
     return *type_;
   }
@@ -57,6 +60,7 @@ struct TensorImpl {
   }
 
 private:
+  // TensorImpl 一个 refcount， 一个 is_scalar, 一个 type_
   std::atomic<int> refcount;
   bool is_scalar;
   Type * type_;
