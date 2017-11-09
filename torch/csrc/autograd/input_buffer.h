@@ -6,9 +6,8 @@
 // This behaviour needed and used only in backward graphs.
 
 
-// 1. accumulates a list of Variables for use by a function
-// 2. 
-// 研究一下这个类在什么时候用到
+// 在计算梯度的时候， grad_fn 的 输入可能从 很多条路径上累积过来
+// 这个 类就是用来 累积 grad_fn 的输入
 
 #include <Python.h>
 #include <vector>

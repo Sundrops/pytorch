@@ -282,13 +282,20 @@ auto Engine::evaluate_function(FunctionTask& task) -> void {
     }
 
     auto& not_ready = task.base->not_ready;
+    // 看看这个 next_fn 是否已经在 base->not_ready 记录过
     auto not_ready_it = not_ready.find(next_fn.get());
+
     if (not_ready_it == not_ready.end()) {
+      // 如果没有记录过，
       // No buffers have been allocated for the function
       InputBuffer input_buffer(next_fn->num_inputs);
+      // 梯度累加
       input_buffer.add(input_nr, std::move(output));
+
+      // 如果 ready 的话， 意味着 所有的 gradient 都已经累积完毕，可以进行下一步操作了。
       if (is_ready) {
         auto& queue = ready_queue(input_buffer.device());
+        // push 到前面去 
         queue.push_front(FunctionTask(task.base, next_fn, std::move(input_buffer)));
       } else {
         not_ready.emplace(next_fn.get(), std::move(input_buffer));
@@ -300,6 +307,7 @@ auto Engine::evaluate_function(FunctionTask& task) -> void {
       if (is_ready) {
         auto& queue = ready_queue(input_buffer.device());
         queue.push_front(FunctionTask(task.base, next_fn, std::move(input_buffer)));
+        // 从 not_ready map中删除
         not_ready.erase(not_ready_it);
       }
     }
