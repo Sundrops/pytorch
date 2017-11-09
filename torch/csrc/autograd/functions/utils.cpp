@@ -9,6 +9,7 @@
 namespace torch { namespace autograd {
 
 // 注意一下类型， inputs 是 variable， outputs 是 Tensor
+// 这个函数 构建起了一个 反向传导 计算图
 variable_list wrap_outputs(const variable_list& inputs, tensor_list&& outputs,
                            function_constructor ctr) {
 

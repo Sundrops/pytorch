@@ -24,7 +24,11 @@
 namespace torch { namespace autograd {
 
 // NB: -1 indicates the CPU worker!
+// -2 表示没有设备
 static constexpr int NO_DEVICE = -2;
+
+// thread_local ： 线程生命周期，线程创建时存在，线程销毁时 销毁
+// 这个变量会在每一个 使用它的 线程中创建一个副本，随着线程的 执行完毕 而销毁。
 static thread_local int worker_device = NO_DEVICE;
 
 // XXX: Changes to the way multithreading works in execute should be done with
@@ -37,12 +41,12 @@ static thread_local int worker_device = NO_DEVICE;
 struct FunctionTask {
   // 每个 FunctionTask 中都维护着一个 base GraphTask
   GraphTask* base;
-  std::shared_ptr<Function> fn; //这个是个反向求导函数
+  std::shared_ptr<Function> fn; //这个是个反向求导函数，当前的
   // This buffer serves as an implicit "addition" node for all of the
   // gradients flowing here.  Once all the dependencies are finished, we
   // use the contents of this buffer to run the function.
   // buffer 是用来累积梯度的
-  InputBuffer inputs; // 反向求导函数的输入
+  InputBuffer inputs; // 反向求导函数的输入，当前的
 
   FunctionTask(GraphTask* base, std::shared_ptr<Function> fn, InputBuffer inputs)
     : base(base)
@@ -50,12 +54,14 @@ struct FunctionTask {
     , inputs(std::move(inputs)) {}
 };
 
+// 存放着 可以进行计算的 FunctionTask
 struct ReadyQueue {
   // queue 是 FunctionTask 的 一个 双端队列
   std::deque<FunctionTask> queue;
 
   // std::condition_variable 条件变量，同步的时候会用到
   // 用 unique_lock (over mutex) 来进行操作
+  // not_empty 是用来干什么的？
   std::condition_variable not_empty;
   std::mutex mutex;
 
@@ -71,16 +77,19 @@ struct GraphTask {
   std::atomic<uint64_t> outstanding_tasks;
   bool keep_graph;
   bool has_any_work;
-
+  // 用来 给 notify_all 加锁的
   std::mutex mutex;
   // Notified when a task finishes executing.  Check outstanding_tasks to see
   // if all tasks are done.
   std::condition_variable not_done;
   const Engine::pre_callback_map& pre_callbacks;
   const Engine::post_callback_map& post_callbacks;
+
+  //用来存放没有 准备好的 FunctionTask
   std::unordered_map<Function*, InputBuffer> not_ready;
   std::unordered_map<Function*, int> dependencies;
-
+  
+  // 这个代表的是啥子？？？？ 哪个 device 拥有这个 GraphTask？
   int owner;
 
   GraphTask(bool keep_graph, const Engine::pre_callback_map& pre_callbacks, const Engine::post_callback_map& post_callbacks)
@@ -100,18 +109,21 @@ struct GraphTask {
 
 auto ReadyQueue::push_front(FunctionTask item) -> void {
   {
+    // ReadyQueue 中 push 操作是线程安全的！！！， 即：queue 的push 操作是线程安全的
     std::lock_guard<std::mutex> lock(mutex);
     // -> 的优先级 大于 ++
     // GraphTask 记录了 outstanding_tasks，
     ++item.base->outstanding_tasks;
     queue.push_front(std::move(item));
   }
+
+  // push 一次， 通知一个线程 来 pop 它
   not_empty.notify_one();
 }
 
 auto ReadyQueue::pop_back() -> FunctionTask {
   std::unique_lock<std::mutex> lock(mutex);
-  // 如果 queue 为 空时， 也会阻塞 线程
+  // 只有 queue为 空，才会阻塞当前线程。 这部分代码也保证了 queue 的pop 线程安全！！！！
   not_empty.wait(lock, [this]{ return !queue.empty(); });
   auto task = std::move(queue.back()); queue.pop_back();
   return task;
@@ -124,8 +136,11 @@ Engine::Engine() : ready_queues() {
 Engine::~Engine() = default;
 
 auto Engine::thread_init(int device) -> void {
+  // 线程初始化干了什么事？？？？
   THInferNumThreads();
   AutoGPU guard(device);
+
+  // thread_init 的时候，给了 worker_device 值， 每个 thread 一个
   worker_device = device;
   thread_main(nullptr);
 }
@@ -145,20 +160,30 @@ auto Engine::thread_init(int device) -> void {
 // It's all ok and is handled right now, but it should be accounted for
 // in case this code is to be changed.
 auto Engine::thread_main(GraphTask *graph_task) -> void {
+
+  // worker_device 是用来干嘛的 ？？？？？, worker_device+1 是什么鬼，如果 CPU 的话， +1 就是 0, 
+  // worker_device + 1 代表的是 worker_ 对应的 ReadyQueue
+  // 从这里可以看出 ready_queues 中存的是 设备的 ready_queue
   auto queue = ready_queues[worker_device + 1];
+  // 这里开始从 ReadyQueue中取出 FuncitonTask 开始操作
+  // 这里为啥不并行呢？
   while (!graph_task || graph_task->outstanding_tasks > 0) {
     FunctionTask task = queue->pop_back();
     if (task.fn && !task.base->has_error.load()) {
       try {
-        evaluate_function(task);
+        evaluate_function(task);  // 计算 task，然后再把该放入 ReadyQueue 中的 的task 放进去
       } catch (std::exception& e) {
         thread_on_exception(task, e);
       }
     }
     auto base_owner = task.base->owner;
+
+    // non-worker thread 是什么意思？？？
     // Task from a non-worker thread. Easy case.
     if (base_owner == NO_DEVICE) {
       if (--task.base->outstanding_tasks == 0) {
+
+        // 给 notify_all 加个锁
         std::lock_guard<std::mutex> lock(task.base->mutex);
         task.base->not_done.notify_all();
       }
@@ -166,6 +191,7 @@ auto Engine::thread_main(GraphTask *graph_task) -> void {
       // If it's a task initiated from this thread, decrease the counter, but
       // don't do anything - loop condition will do all checks for us next.
       if (base_owner == worker_device) {
+        // 做完了一个 task， 所以 outstanding_tasks 减了一
         --task.base->outstanding_tasks;
       // Otherwise send a dummy function task to the owning thread just to
       // ensure that it's not sleeping. If it has work, it might see that
@@ -280,7 +306,8 @@ auto Engine::evaluate_function(FunctionTask& task) -> void {
       dependencies.erase(it);
       is_ready = true;
     }
-
+    
+    // not_ready 放的是 没有准备好的 FunctionTask
     auto& not_ready = task.base->not_ready;
     // 看看这个 next_fn 是否已经在 base->not_ready 记录过
     auto not_ready_it = not_ready.find(next_fn.get());
@@ -386,6 +413,9 @@ struct ClearCallbacks {
   std::mutex& callbacks_lock;
 };
 
+// function_list: std::vector<edge_type>, 
+// edge_type: std::pair<std::shared_ptr<Function>, int>, Function 代表 grad_fn， int 的第几个输入（即：fn 的第几个输出）
+// 为什么 function_list, 因为可能会有多个 root。
 auto Engine::execute(const function_list& input_roots,
                      const variable_list& inputs,
                      bool keep_graph,
@@ -393,10 +423,13 @@ auto Engine::execute(const function_list& input_roots,
                      const post_callback_map& post_callbacks) -> void {
   std::call_once(start_threads_flag, &Engine::start_threads, this);
   // Callbacks are only valid for the duration of this run and should always be cleared
+  // 这些 Callbacks 指的是什么？？？？？？？？？？？？？？？？？？
   ClearCallbacks _cb_guard(final_callbacks, post_callbacks_lock);
-
+  
+  // owner 默认为 NO_DEVICE, GraphTask 有个 owner
   GraphTask graph_task(keep_graph, pre_callbacks, post_callbacks);
 
+  // lock 为 unique lock
   std::unique_lock<std::mutex> lock(graph_task.mutex);
 
   auto graph_root = std::make_shared<GraphRoot>(input_roots, inputs);
@@ -405,6 +438,7 @@ auto Engine::execute(const function_list& input_roots,
     if (entry.first->is_executable) {
       graph_task.has_any_work = true;
       roots.push_back(graph_root.get());
+      // read_queue 返回一个 ReadyQueue， -1 为 device_id（代表CPU）, InputBuffer 为0 说明 root 的梯度不需要累积
       ready_queue(-1).push_front(FunctionTask(&graph_task, graph_root, InputBuffer(0)));
       break;
     }
@@ -424,6 +458,9 @@ auto Engine::execute(const function_list& input_roots,
   // Not a worker
   if (worker_device == NO_DEVICE) {
     // Wait for all tasks to complete
+    // thread_main 中有 notify_all 这个操作
+
+    // 第二个参数，返回为 true ， 则不阻塞 当前线程， 如果 为 false，即使 notify, 也不会释放
     graph_task.not_done.wait(lock, [&graph_task]{
       return graph_task.outstanding_tasks.load() == 0;
     });
@@ -477,6 +514,7 @@ auto Engine::start_threads() -> void {
   for (auto& queue : ready_queues)
     queue.reset(new ReadyQueue());
   for (int i = 0; i < num_threads; ++i) {
+    // this, 显示将对象指针传进去！！！！！
     std::thread t(&Engine::thread_init, this, i - 1);
     t.detach();
   }
