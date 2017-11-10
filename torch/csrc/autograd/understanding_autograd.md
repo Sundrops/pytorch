@@ -8,6 +8,15 @@
 2. Function 在前向过程中充当什么角色
 
 **pytorch 的前向过程，是动态创建反向传导图的过程 ！如何创建的反向传导图呢？**
+核心是 `wrap_outputs`， `wrap_outputs` 做了什么：
+
+1. 根据 inputs 计算出 grad_fn 的 `is_volatile, is_executable, next_functions`
+2. 然后创建 grad_fn
+3. 然后创建 forward_fn 的 输出 Variable
+
+> 根据 `next_functions` 就能得到 反向传导图了。
+
+
 
 
 
@@ -35,6 +44,13 @@
         5. 如果 graph_task->outstanding_tasks <= 0 则退出循环
     3. 通过上面的循环， 可以执行完 GraphTask 中所有的 Function， 完成一次 BP
     4. NO_DEVICE 操作操作
+
+
+**反向的时候调用 call_function(), 这个函数干了些啥？**
+
+1. 调用注册在 fn 上的 pre_hooks, 得到一个 新的 inputs
+2. 然后执行  fn(inputs) 得到一个结果
+3. 然后再调用注册在 fn 上的 post_hooks，然后返回 作为 outputs
 
 
 **InputBuffer 的 device 是怎么得到的**
