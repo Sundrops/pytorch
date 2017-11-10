@@ -26,6 +26,7 @@
 
 #ifdef _WIN32
 # ifdef TH_EXPORTS
+// 关于 __declsec(dllexport) 的解释 http://www.cppblog.com/Dutyboy/archive/2010/11/15/133699.html
 #  define TH_API TH_EXTERNC __declspec(dllexport)
 # else
 #  define TH_API TH_EXTERNC __declspec(dllimport)
@@ -50,7 +51,7 @@ typedef struct {
     char str[TH_DESC_BUFF_LEN];
 } THDescBuff;
 
-
+// TH_API 声明导出函数， extern
 TH_API double THLog1p(const double x);
 TH_API THDescBuff _THSizeDesc(const int64_t *size, const int64_t ndim);
 TH_API void _THError(const char *file, const int line, const char *fmt, ...);
@@ -111,6 +112,8 @@ do {                                                                  \
 
 #define TH_CONCAT_2(x,y) TH_CONCAT_2_EXPAND(x,y)
 #define TH_CONCAT_2_EXPAND(x,y) x ## y
+
+// CONCAT 生成 TOKEN 的
 
 #define TH_CONCAT_3(x,y,z) TH_CONCAT_3_EXPAND(x,y,z)
 #define TH_CONCAT_3_EXPAND(x,y,z) x ## y ## z

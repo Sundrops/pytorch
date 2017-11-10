@@ -17,6 +17,8 @@
 
 typedef int64_t THIndex_t;
 typedef int32_t THInteger_t;
+
+// THNNState* 为空指针，这个指针是干嘛用的！！！！！！！！！！！！？？？？？？？？？？？
 typedef void THNNState;
 
 #define THNN_resizeAs_indices(I1, I2)                    \

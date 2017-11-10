@@ -30,6 +30,7 @@
 // THGeneral 的一个 包装
 // ctx 指的是啥， ptrdiff_t 
 static void *THDefaultAllocator_alloc(void* ctx, ptrdiff_t size) {
+  // ctx 感觉没有用到 啊 ！！！！！！！！！！！！！！！！！
   return THAlloc(size);
 }
 
@@ -41,6 +42,8 @@ static void THDefaultAllocator_free(void* ctx, void* ptr) {
   THFree(ptr);
 }
 
+// 创建一个 全局的 THAllocator
+// 里面有三个函数！！！！
 THAllocator THDefaultAllocator = {
   &THDefaultAllocator_alloc,
   &THDefaultAllocator_realloc,
@@ -49,6 +52,7 @@ THAllocator THDefaultAllocator = {
 
 #if defined(_WIN32) || defined(HAVE_MMAP)
 
+// 这个是用来 干嘛的， 怎么还有个 filename, 哪里有上下文
 struct THMapAllocatorContext_ {
   char *filename; /* file name */
   int flags;
@@ -70,6 +74,7 @@ char * unknown_filename = "filename not specified";
 
 THMapAllocatorContext *THMapAllocatorContext_new(const char *filename, int flags)
 {
+  // 创建上下文的代码
   THMapAllocatorContext *ctx = THAlloc(sizeof(THMapAllocatorContext));
 
   if (!(flags & TH_ALLOCATOR_MAPPED_SHARED) && !(flags & TH_ALLOCATOR_MAPPED_SHAREDMEM))

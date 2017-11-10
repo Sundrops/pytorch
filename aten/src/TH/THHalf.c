@@ -17,7 +17,7 @@ TH_API float TH_half2float(THHalf h)
 }
 
 // Host functions for converting between FP32 and FP16 formats
-
+// Host funtion， 不是 device function
 void TH_halfbits2float(unsigned short* src, float* res)
 {
     unsigned h = *src;

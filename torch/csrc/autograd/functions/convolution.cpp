@@ -269,6 +269,7 @@ auto ConvForward::apply(const variable_list& inputs) -> variable_list {
   if (is_padding_neg()) throw std::runtime_error("negative padding is not supported");
   if (is_output_padding_neg()) throw std::runtime_error("negative output_padding is not supported");
 
+  // 确定 inputs[0] 是什么类型， Tenor 自身保存是不是 cuda 类型的信息
   AutoGPU guard(inputs[0]);
 
   auto input = inputs[0].data().contiguous();
