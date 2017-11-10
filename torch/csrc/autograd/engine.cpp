@@ -24,7 +24,7 @@
 namespace torch { namespace autograd {
 
 // NB: -1 indicates the CPU worker!
-// -2 表示没有设备
+// -2 表示 NO_DEVIE
 static constexpr int NO_DEVICE = -2;
 
 // thread_local ： 线程生命周期，线程创建时存在，线程销毁时 销毁
@@ -45,7 +45,7 @@ struct FunctionTask {
   // This buffer serves as an implicit "addition" node for all of the
   // gradients flowing here.  Once all the dependencies are finished, we
   // use the contents of this buffer to run the function.
-  // buffer 是用来累积梯度的
+  // buffer 是用来累积梯度的, 用来累积 fn 的输入梯度
   InputBuffer inputs; // 反向求导函数的输入，当前的
 
   FunctionTask(GraphTask* base, std::shared_ptr<Function> fn, InputBuffer inputs)
@@ -74,6 +74,8 @@ struct GraphTask {
   // Indicates if an error occurred while executing any task.  When this is
   // true, it signals all threads to stop executing.
   std::atomic_bool has_error;
+
+  // 剩余 tasks， 在 ReadyQueue 的 push方法 中加一， 在 evaluate_function 中减一操作
   std::atomic<uint64_t> outstanding_tasks;
   bool keep_graph;
   bool has_any_work;
@@ -89,7 +91,7 @@ struct GraphTask {
   std::unordered_map<Function*, InputBuffer> not_ready;
   std::unordered_map<Function*, int> dependencies;
   
-  // 这个代表的是啥子？？？？ 哪个 device 拥有这个 GraphTask？
+  // 这个来 表示 GraphTask 是在哪个 device 上创建的
   int owner;
 
   GraphTask(bool keep_graph, const Engine::pre_callback_map& pre_callbacks, const Engine::post_callback_map& post_callbacks)
