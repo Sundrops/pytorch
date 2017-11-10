@@ -136,7 +136,7 @@ Engine::Engine() : ready_queues() {
 Engine::~Engine() = default;
 
 auto Engine::thread_init(int device) -> void {
-  // 线程初始化干了什么事？？？？
+  // 线程初始化是 用 nullptr 开 NUM_DEVICE 个 线程，准备操作 GraphTask
   // 设置一下线程个数？
   THInferNumThreads();
 
