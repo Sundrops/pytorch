@@ -29,6 +29,8 @@ using tensor_pair = std::pair<at::Tensor, at::Tensor>;
 namespace torch { namespace autograd {
 
 // Forward function definition and utility functions
+// 两个工具函数！！！！！！！！！！！！！！！！！！！！！！！
+
 
 static at::Tensor compute_output(
   at::Tensor& input, at::Tensor& weight, at::Tensor& bias, at::Tensor& columns, at::Tensor& ones,

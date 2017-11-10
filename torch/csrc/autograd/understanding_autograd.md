@@ -7,6 +7,11 @@
 1. Variable 在前向过程中充当什么角色
 2. Function 在前向过程中充当什么角色
 
+**pytorch 的前向过程，是动态创建反向传导图的过程 ！如何创建的反向传导图呢？**
+
+
+
+
 ## 反向：
 
 1. pytorch 什么时候创建的 反向传导图，如何创建的
@@ -15,12 +20,12 @@
 看下反向传导的过程是啥样的：
 
 **Engine.execute() *
-
-1. 创建 GraphTask : {keep_graph, mutex, std::condition_variable not_done, std::unordered_map<Function*, InputBuffer> not_ready, std::unordered_map<Function*, int> dependencies, int owner}
-2. 做一个  graph_root（是个 Function）， 然后将其包装成 FunctionTask 放到 CPU 的 ReadyQueue 中！
-3. 计算 反向传导图中的 所有可计算函数的 依赖 个数 ，保存在 GraphTask 的 dependencies 中
-4. 如果 NO_DEVICE， 就不会执行下面代码
-5. 然后执行 Engin.thread_main(GraphTask* gt)
+1. 开启 NUM_DEVICES 个线程 放在后台 处理 GraphTask 中的任务 （只执行一次，和进程有相同的生命周期？）
+2. 创建 GraphTask : {keep_graph, mutex, std::condition_variable not_done, std::unordered_map<Function*, InputBuffer> not_ready, std::unordered_map<Function*, int> dependencies, int owner}
+3. 做一个  graph_root（是个 Function）， 然后将其包装成 FunctionTask 放到 CPU 的 ReadyQueue 中！
+4. 计算 反向传导图中的 所有可计算函数的 依赖 个数 ，保存在 GraphTask 的 dependencies 中
+5. 如果 NO_DEVICE， 就不会执行下面代码
+6. 然后执行 Engin.thread_main(GraphTask* gt)： 第一步开启的 线程也是 执行下面的操作。
     1. 从 Engine 的 ready_queues 中拿出 当前 worker_device 所对应的 ReadyQueue
     2. 循环执行 Engine.evaluate_function(FunctionTask)： 从 相应的 ReadyQueue 中取出 FunctionTask（取的过程可能会阻塞）
         1. 进行 FunctionTask 的计算
@@ -62,6 +67,7 @@ if (worker_device == NO_DEVICE) {
 
 ```c++
 // thead_main 中
+// 如果 GraphTask 的 owner 是 NO_DEVICE
 if (base_owner == NO_DEVICE) {
     if (--task.base->outstanding_tasks == 0) {
         // 给 notify_all 加个锁
@@ -72,4 +78,4 @@ if (base_owner == NO_DEVICE) {
 
 ## 疑问
 
-* engine 是但线程的？？？ 
+* engine 是单线程的？？？ 

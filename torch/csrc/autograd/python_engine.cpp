@@ -43,6 +43,7 @@ void PythonEngine::execute(
     const pre_callback_map& pre_callbacks,
     const post_callback_map& post_callbacks) {
   try {
+    // 调用 execute 的时候，会给 num_worker 初始化 线程。
     Engine::execute(roots, inputs, keep_graph, pre_callbacks, post_callbacks);
   } catch (python_error& e) {
     e.restore();

@@ -34,6 +34,7 @@ struct SavedVariable {
   // it would create a circular reference. In that case, the grad_fn must be
   // passed in to the unpack function when reconstructing the Variable.
   bool has_grad_fn;
+  // 变量的 梯度函数， 
   std::shared_ptr<Function> _grad_fn;
   std::weak_ptr<Function> grad_accumulator;
   SavedVersion version;

@@ -6,6 +6,13 @@ using namespace at;
 
 namespace torch { namespace autograd {
 
+// 就是 把 Variable 的属性全都搞过来！！！！！！！！！！！
+// 逻辑是这样：
+// 用 Conv 举例： ConvForward 的输入， 以 SavedVariable 保存到 ConvBackward 中！！！！！！！！ saved_for ConvBackward
+// 这时， variable.grad_fn 是不等于 saved_for 的
+// 所以 SavedVariable 的 grad_fn 设置成 variable 的 grad_fn
+// 如果 variable.grad_fn 与 saved_for 这种是什么情况呢？ 就是 计算 sofmax 导数的时候！！！！！！！！！！！！！！！
+// SavedVariable 是 函数 中保存的 Variable， 用来计算 反向传导时的梯度的！！！！！！！！！！！！！！！！
 SavedVariable::SavedVariable(const Variable& variable, Function* saved_for)
   : SavedVariable() {
   if (!variable.defined()) {

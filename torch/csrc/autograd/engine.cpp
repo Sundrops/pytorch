@@ -140,11 +140,14 @@ auto Engine::thread_init(int device) -> void {
   // 设置一下线程个数？
   THInferNumThreads();
 
-  //设置 GPU 的使用
+  //设置 GPU 的使用, device -1 代表 CPU， device 0 代表 GPU
   AutoGPU guard(device);
 
   // thread_init 的时候，给了 worker_device 值， 每个 thread 一个
+  // worker_device: thread_local  类型，线程生存周期
   worker_device = device;
+  
+  // 开启线程， GraphTask 是一个 nullprt
   thread_main(nullptr);
 }
 
@@ -162,15 +165,23 @@ auto Engine::thread_init(int device) -> void {
 // completely unrelated to that of Eval1 (it's not a recursive call).
 // It's all ok and is handled right now, but it should be accounted for
 // in case this code is to be changed.
-auto Engine::thread_main(GraphTask *graph_task) -> void {
 
-  // worker_device 是用来干嘛的 ？？？？？, worker_device+1 是什么鬼，如果 CPU 的话， +1 就是 0, 
+// 有几个 device， execute 中就开启了几个 此线程。
+// 看了 Enginie::execute 代码，发现 NO_DEVICE 不会进入此方法
+auto Engine::thread_main(GraphTask *graph_task) -> void {
+  // worker_device 是 thread_local 类型的 变量
+  // worker_device+1 是什么鬼，如果 CPU 的话， +1 就是 0, 
   // worker_device + 1 代表的是 worker_ 对应的 ReadyQueue
   // 从这里可以看出 ready_queues 中存的是 设备的 ready_queue
   auto queue = ready_queues[worker_device + 1];
   // 这里开始从 ReadyQueue中取出 FuncitonTask 开始操作
-  // 这里为啥不并行呢？
+  // 1.DEVICE 线程在这做了些什么
+  // 
   while (!graph_task || graph_task->outstanding_tasks > 0) {
+    // 由于 DEVICE 线程是由 thread_start 开启的， 所以 DEVICE 线程中的 graph_task 为 nullptr
+    // 所以 !graph_task 一直为 True， 这个循环一直在跑着。如果 pop 不出来了，就阻塞一下
+    // DEVICE 线程在 生命周期是 进程的生命周期，并不是 一次 backward 的 生命周期
+    // 如果 worker_device ！= NO_DEVICE， 则会执行以下操作
     FunctionTask task = queue->pop_back();
     if (task.fn && !task.base->has_error.load()) {
       try {
@@ -180,16 +191,18 @@ auto Engine::thread_main(GraphTask *graph_task) -> void {
       }
     }
 
-    // 取出 GraphTasker 的 owner， 是 worker_device
+    // 取出 FunctionTask 的 base owner， 是 FunctionTask 所属 GraphTask 的 owner！
     auto base_owner = task.base->owner;
 
-    // non-worker thread 是什么意思？？？
+    // 简单情况下， base_owner 就是 NO_DEVICE
+    // 这种情况下很简单，将 graph_task.outstanding_task -1 ,如果 为 0, 就 notify_all 一下， 告诉其它阻塞的伙计们，老子干完活了。
     // Task from a non-worker thread. Easy case.
     if (base_owner == NO_DEVICE) {
       if (--task.base->outstanding_tasks == 0) {
 
         // 给 notify_all 加个锁
         std::lock_guard<std::mutex> lock(task.base->mutex);
+        // 给阻塞在 execute 中的伙计知会一声， 知会完之后， execute 就能够退出执行了。
         task.base->not_done.notify_all();
       }
     } else {
@@ -435,13 +448,17 @@ auto Engine::execute(const function_list& input_roots,
                      const pre_callback_map& pre_callbacks,
                      const post_callback_map& post_callbacks) -> void {
   
-  // 只需要执行一次的函数， 而且线程安全！！！！！
+  // 只需要执行一次的函数， 而且线程安全！！！！！，
+  //  执行 start_threads，开启了 NUM_DEVICE 个线程。
+  // NUM_DEVICE 个线程是留着计算用的！！！！！！！！！！！
+
   std::call_once(start_threads_flag, &Engine::start_threads, this);
   // Callbacks are only valid for the duration of this run and should always be cleared
   // 这些 Callbacks 指的是什么？？？？？？？？？？？？？？？？？？
   ClearCallbacks _cb_guard(final_callbacks, post_callbacks_lock);
   
   // owner 默认为 NO_DEVICE, GraphTask 有个 owner
+  // 这个 engine 从哪来 ？？？？？？？？？？？？
   GraphTask graph_task(engine, pre_callbacks, post_callbacks);
 
   // lock 为 unique lock, 这儿加了个锁！！！！！！！！！！
@@ -486,8 +503,8 @@ auto Engine::execute(const function_list& input_roots,
   // NO_DEVICE 在 pytorch 中做什么工作呢？？？？？？？？？？？？？？？？
   if (worker_device == NO_DEVICE) {
     // Wait for all tasks to complete
+    // 如果是 NO_DEVICE 线程， 静静的等待线程结束就好了
     // thread_main 中有 notify_all 这个操作
-
     // 第二个参数，返回为 true ， 则不阻塞 当前线程， 如果 为 false，即使 notify, 也不会释放
     graph_task.not_done.wait(lock, [&graph_task]{
       return graph_task.outstanding_tasks.load() == 0;
@@ -527,11 +544,13 @@ auto Engine::ready_queue(int device) -> ReadyQueue& {
   return *ready_queues.at(device + 1);
 }
 
-// 这个线程如何理解， 开始了 就 detach 了呀！
+// 开启 NUM_DEVICES 个线程，放到后台处理 BP 提交的任务
+// 这个函数在 Engine::execute 中被执行， 而且保证只倍执行一次
 auto Engine::start_threads() -> void {
   int num_devices = 0;
 #ifdef WITH_CUDA
   // check for case of compiled with CUDA but no available devices
+  // 这里操作了一波 num_devices 如果有 cuda 的话， 就加了一
   if (cudaGetDeviceCount(&num_devices) != cudaSuccess) {
     cudaGetLastError();
     num_devices = 0;
