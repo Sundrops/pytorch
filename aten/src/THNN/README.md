@@ -1,6 +1,8 @@
 # THNN
 
 C Library： CFFI
+神经网络激活函数的 C 库
+可以用 CFFI 调
 
 THNN is a library that gathers nn's C implementations of neural network modules. It's entirely free of Lua dependency and therefore can be used in any application that has a C FFI. Please note that it only contains quite low level functions, and an object oriented C/C++ wrapper will be created soon as another library.
 
