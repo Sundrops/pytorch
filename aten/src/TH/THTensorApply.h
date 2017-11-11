@@ -1,6 +1,9 @@
 #ifndef TH_TENSOR_APPLY_INC
 #define TH_TENSOR_APPLY_INC
 
+
+// 执行 point-wise 操作的地方
+// 因为 C 中没有重载，就这么蛋疼
 /*
  * The basic strategy for apply is as follows:
  *
@@ -29,7 +32,14 @@
  * dimensions can be merged for the purposes of APPLY, reducing the number of nested
  * loops.
  */
+// outermost 指的是 Tensor 最右边的 索引
+// innermost 指的是 Tensor 最左边的 索引
+// 假设 A[10][100][1000], 1000 那得索引是 outermost， 10 是 innermost
 
+
+// Preamble 是序文（先兆/电报报头）的意思！！！
+// TENSOR 是 作为 Token 用， 也作为对象来用
+// 预处理器过后，下面都是些 TENSOR_counter 变量啥的
 #define __TH_TENSOR_APPLYX_PREAMBLE(TYPE, TENSOR, DIM, ALLOW_CONTIGUOUS) \
   TYPE *TENSOR##_data = NULL; \
   int64_t *TENSOR##_counter = NULL, *TENSOR##_sizes = NULL, *TENSOR##_strides = NULL, *TENSOR##_dimOffset = NULL; \
@@ -134,6 +144,22 @@
     TENSOR##_i = 0; \
   } \
 
+/*
+TH_TENSOR_APPLY3(real, gradInput, real, gradOutput, real, output,
+    real z = *output_data;
+    *gradInput_data = *gradOutput_data * (1. - z) * z;
+  );
+预处理器操作：
+gradInput 和 gradOutput 都是指向 tensor 的指针
+TH_TENSOR_APPLY3_D(real, gradInput, real, GradOutput, real, output, -1, real z = *output_data;*gradInput_data = *gradOutput_data * (1. - z) * z;)
+预处理器第二次操作：
+
+code是
+real z = *output_data;
+*gradInput_data=*gradOutput_data *(1. -z )* z ;
+
+*/
+// 可以看做一个内联的函数， 每次调用的时候都会展开，那么问题来了，为啥不直接写成内联函数呢？ 难道是担心 编译器的优化？
 #define TH_TENSOR_APPLY3_D(TYPE1, TENSOR1, TYPE2, TENSOR2, TYPE3, TENSOR3, DIM, CODE) \
 { \
   int TH_TENSOR_APPLY_hasFinished = 0; \
@@ -214,6 +240,7 @@
 #define TH_TENSOR_APPLY2(TYPE1, TENSOR1, TYPE2, TENSOR2, CODE) \
   TH_TENSOR_APPLY2_D(TYPE1, TENSOR1, TYPE2, TENSOR2, -1, CODE)
 
+// 
 #define TH_TENSOR_APPLY_D(TYPE, TENSOR, DIM, CODE) \
 { \
   int TH_TENSOR_APPLY_hasFinished = 0; \
