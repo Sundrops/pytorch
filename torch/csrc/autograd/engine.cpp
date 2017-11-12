@@ -467,7 +467,7 @@ auto Engine::execute(const function_list& input_roots,
   /*
   加锁的部分做的工作有：
   1. 创建了 graph_root 并将其放入 CPU 的 ReadyQueue 中
-  2. 计算 反向传导图中 每个 Function 的依赖数量
+  2. 计算 反向传导图中 每个 Function 的依赖数量, 并放入 GraphTask 中
   3. 给 GraphTask 制定 owner = worker_device
   4. 然后释放锁， 执行 thread_main 
   */
@@ -501,7 +501,7 @@ auto Engine::execute(const function_list& input_roots,
   compute_dependencies(std::move(roots), graph_task);
 
   // Not a worker
-  // NO_DEVICE 在 pytorch 中做什么工作呢？？？？？？？？？？？？？？？？
+  // NO_DEVICE 在 pytorch 中做什么工作呢？ 坐等 backward 完成，啥事都不干，然后 check 一下 backward 执行的怎么样
   if (worker_device == NO_DEVICE) {
     // Wait for all tasks to complete
     // 如果是 NO_DEVICE 线程， 静静的等待线程结束就好了

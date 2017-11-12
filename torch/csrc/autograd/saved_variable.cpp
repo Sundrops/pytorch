@@ -13,6 +13,7 @@ namespace torch { namespace autograd {
 // 所以 SavedVariable 的 grad_fn 设置成 variable 的 grad_fn
 // 如果 variable.grad_fn 与 saved_for 这种是什么情况呢？ 就是 计算 sofmax 导数的时候！！！！！！！！！！！！！！！
 // SavedVariable 是 函数 中保存的 Variable， 用来计算 反向传导时的梯度的！！！！！！！！！！！！！！！！
+// saved_for ， 保存的 Variable 是要给谁用的
 SavedVariable::SavedVariable(const Variable& variable, Function* saved_for)
   : SavedVariable() {
   if (!variable.defined()) {
