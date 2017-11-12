@@ -139,7 +139,7 @@ Engine::~Engine() = default;
 
 auto Engine::thread_init(int device) -> void {
   // 线程初始化是 用 nullptr 开 NUM_DEVICE 个 线程，准备操作 GraphTask
-  // 设置一下线程个数？
+  // 设置一下线程个数？ 这个还不清楚到底到底干了些啥
   THInferNumThreads();
 
   //设置 GPU 的使用, device -1 代表 CPU， device 0 代表 GPU
@@ -460,8 +460,7 @@ auto Engine::execute(const function_list& input_roots,
   ClearCallbacks _cb_guard(final_callbacks, post_callbacks_lock);
   
   // owner 默认为 NO_DEVICE, GraphTask 有个 owner
-  // 这个 engine 从哪来 ？？？？？？？？？？？？
-  GraphTask graph_task(engine, pre_callbacks, post_callbacks);
+  GraphTask graph_task(keep_graph, pre_callbacks, post_callbacks);
 
   // lock 为 unique lock, 这儿加了个锁！！！！！！！！！！
   std::unique_lock<std::mutex> lock(graph_task.mutex);
