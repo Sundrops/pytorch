@@ -11,7 +11,7 @@ namespace torch { namespace autograd {
 // 用 Conv 举例： ConvForward 的输入， 以 SavedVariable 保存到 ConvBackward 中！！！！！！！！ saved_for ConvBackward
 // 这时， variable.grad_fn 是不等于 saved_for 的
 // 所以 SavedVariable 的 grad_fn 设置成 variable 的 grad_fn
-// 如果 variable.grad_fn 与 saved_for 这种是什么情况呢？ 就是 计算 sofmax 导数的时候！！！！！！！！！！！！！！！
+// 如果 variable.grad_fn 与 saved_for 相等，这种是什么情况呢？ 就是 计算 sofmax 导数的时候！！！！！！！！！！！！！！！
 // SavedVariable 是 函数 中保存的 Variable， 用来计算 反向传导时的梯度的！！！！！！！！！！！！！！！！
 // saved_for ， 保存的 Variable 是要给谁用的
 SavedVariable::SavedVariable(const Variable& variable, Function* saved_for)
@@ -19,6 +19,7 @@ SavedVariable::SavedVariable(const Variable& variable, Function* saved_for)
   if (!variable.defined()) {
     return;
   }
+  // data 搞过来，这样， data 底层的引用计数又 加了 一
   data = variable.data();
   requires_grad = variable.requires_grad();
   is_volatile = variable.is_volatile();

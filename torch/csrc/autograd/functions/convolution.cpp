@@ -378,7 +378,8 @@ auto ConvBackward::apply(const variable_list& grad_outputs) -> variable_list {
   check_input_variables("ConvNdBackward", grad_outputs, 1);
   if (is_padding_neg()) throw std::runtime_error("negative padding is not supported");
   if (is_output_padding_neg()) throw std::runtime_error("negative output_padding is not supported");
-
+  
+  // 将 SavedVariable 取出来
   auto input_var = input_.unpack();
   auto weight_var = weight_.unpack();
   auto bias_var = bias_.unpack();
