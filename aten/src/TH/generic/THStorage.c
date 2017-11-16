@@ -2,15 +2,19 @@
 #define TH_GENERIC_FILE "generic/THStorage.c"
 #else
 
+// THStorage_(NAME) TH_CONCAT_4(TH,Real,Storage_,NAME)
+// THRealStorage_data, 这个才是下面函数的真名
 real* THStorage_(data)(const THStorage *self)
 {
   return self->data;
 }
 
+// THRealStorage_size, 这个才是下面函数的真名
 ptrdiff_t THStorage_(size)(const THStorage *self)
 {
   return self->size;
 }
+
 
 size_t THStorage_(elementSize)()
 {
@@ -41,6 +45,8 @@ THStorage* THStorage_(newWithAllocator)(ptrdiff_t size,
   return storage;
 }
 
+
+// 共享内存中创建的
 THStorage* THStorage_(newWithMapping)(const char *filename, ptrdiff_t size, int flags)
 {
   THMapAllocatorContext *ctx = THMapAllocatorContext_new(filename, flags);
@@ -107,6 +113,7 @@ void THStorage_(retain)(THStorage *storage)
     THAtomicIncrementRef(&storage->refcount);
 }
 
+// 释放 Storage 占用的空间
 void THStorage_(free)(THStorage *storage)
 {
   if(!storage)

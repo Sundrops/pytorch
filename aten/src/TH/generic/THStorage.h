@@ -27,8 +27,8 @@ typedef struct THStorage
     ptrdiff_t size;
     // 引用计数
     int refcount;
-    char flag;
-    // 分配空间的 类
+    char flag;  // TH_STORAGE_REFCOUNTED | TH_STORAGE_RESIZABLE | TH_STORAGE_FREEMEM;
+    // 用来 给 此 Storage 分配空间的类
     THAllocator *allocator;
     void *allocatorContext;
     struct THStorage *view;

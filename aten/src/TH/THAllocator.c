@@ -29,6 +29,7 @@
 
 // THGeneral 的一个 包装
 // ctx 指的是啥， ptrdiff_t 
+// 这里有个  ctx， 计算的地方有个  THNNState， 怪异，都是什么鬼
 static void *THDefaultAllocator_alloc(void* ctx, ptrdiff_t size) {
   // ctx 感觉没有用到 啊 ！！！！！！！！！！！！！！！！！
   return THAlloc(size);
@@ -38,6 +39,7 @@ static void *THDefaultAllocator_realloc(void* ctx, void* ptr, ptrdiff_t size) {
   return THRealloc(ptr, size);
 }
 
+// 当前 文件 可见
 static void THDefaultAllocator_free(void* ctx, void* ptr) {
   THFree(ptr);
 }
@@ -55,8 +57,12 @@ THAllocator THDefaultAllocator = {
 // 这个是用来 干嘛的， 怎么还有个 filename, 哪里有上下文
 struct THMapAllocatorContext_ {
   char *filename; /* file name */
+  // flags 用来表示什么？？？？？？？？？？？？？？？？？？
   int flags;
   ptrdiff_t size; /* mapped size */
+
+  // win32 用 handle
+  // 其它用 fd 表示
 #ifdef _WIN32
   HANDLE handle;
 #else
@@ -72,6 +78,7 @@ typedef struct {
 
 char * unknown_filename = "filename not specified";
 
+// 给上下文 分配空间
 THMapAllocatorContext *THMapAllocatorContext_new(const char *filename, int flags)
 {
   // 创建上下文的代码
@@ -100,6 +107,8 @@ THMapAllocatorContext *THMapAllocatorContext_new(const char *filename, int flags
   return ctx;
 }
 
+
+// Fd 是什么？？？？？？？？？？？？？？？？？？？？？？？？？？？？
 THMapAllocatorContext *THMapAllocatorContext_newWithFd(const char *filename, int fd, int flags)
 {
 #ifdef _WIN32
@@ -131,6 +140,7 @@ ptrdiff_t THMapAllocatorContext_size(THMapAllocatorContext *ctx)
   return ctx->size;
 }
 
+// 释放上下文 对象的 空间
 void THMapAllocatorContext_free(THMapAllocatorContext *ctx)
 {
   if (ctx->filename != unknown_filename)
@@ -161,6 +171,7 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
 
     if (ctx->flags & TH_ALLOCATOR_MAPPED_EXCLUSIVE)
     {
+      // Windows API， 创建文件映射
       ctx->handle = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, hfilesz.HighPart, hfilesz.LowPart, filename);
     }
     else if (ctx->flags & TH_ALLOCATOR_MAPPED_NOCREATE)
@@ -391,7 +402,7 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
 #endif
 
   return data;
-}
+} /* 文件内存映射*/
 
 static void * THMapAllocator_alloc(void *ctx, ptrdiff_t size) {
   return _map_alloc(ctx, size);
