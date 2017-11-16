@@ -278,7 +278,7 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
     CloseHandle(hfile);
     CloseHandle(hmfile);
   }
-#else /* _WIN32 */
+#else /* _WIN32 , _WIN32 部分的共享内存部分已经搞定，下面是对于 linux 和 OSX 的*/
   {
     /* open file */
     int fd;
@@ -364,6 +364,7 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
 
     /* map it */
     if (ctx->flags & (TH_ALLOCATOR_MAPPED_SHARED | TH_ALLOCATOR_MAPPED_SHAREDMEM))
+      // 多进程数据共享
       data = mmap(NULL, ctx->size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
     else
       data = mmap(NULL, ctx->size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
