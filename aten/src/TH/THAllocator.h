@@ -11,6 +11,8 @@
 #define TH_ALLOCATOR_MAPPED_FROMFD 32
 #define TH_ALLOCATOR_MAPPED_UNLINK 64
 
+// 以上就是 ctx 中的标签！！！！！！！！！！！！！
+
 /* Custom allocator
  */
 typedef struct THAllocator {

@@ -57,16 +57,16 @@ THAllocator THDefaultAllocator = {
 // 这个是用来 干嘛的， 怎么还有个 filename, 哪里有上下文
 struct THMapAllocatorContext_ {
   char *filename; /* file name */
-  // flags 用来表示什么？？？？？？？？？？？？？？？？？？
+  // flags 用来表示什么？？？？？？？？？？？？？？？？？？ THAllocator.h 开头定义的那些属性
   int flags;
   ptrdiff_t size; /* mapped size */
 
   // win32 用 handle
   // 其它用 fd 表示
 #ifdef _WIN32
-  HANDLE handle;
+  HANDLE handle; // window 用句柄表示打开的文件
 #else
-  int fd;
+  int fd; // linux 和 unix-like 系统用 文件描述符表示文件。
 #endif
 };
 
@@ -108,7 +108,7 @@ THMapAllocatorContext *THMapAllocatorContext_new(const char *filename, int flags
 }
 
 
-// Fd 是什么？？？？？？？？？？？？？？？？？？？？？？？？？？？？
+// Fd 是什么？？？？？？？？？？？？？？？？？？？？？？？？？？？？ 文件描述符
 THMapAllocatorContext *THMapAllocatorContext_newWithFd(const char *filename, int fd, int flags)
 {
 #ifdef _WIN32
@@ -197,13 +197,16 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
     HANDLE hfile;
     HANDLE hmfile;
     LARGE_INTEGER hfilesz;
-
+    // TH_ALLOCATOR_MAPPED_EXCLUSIVE 4 ： 0000 0100
     if (ctx->flags & TH_ALLOCATOR_MAPPED_EXCLUSIVE)
       THError("exclusive file mapping is not supported on Windows");
+    // TH_ALLOCATOR_MAPPED_NOCREATE 8: 0000 1000
     if (ctx->flags & TH_ALLOCATOR_MAPPED_NOCREATE)
       THError("file mapping without creation is not supported on Windows");
+    // TH_ALLOCATOR_MAPPED_KEEPFD 16： 0001 0000
     if (ctx->flags & TH_ALLOCATOR_MAPPED_KEEPFD)
       THError("TH_ALLOCATOR_MAPPED_KEEPFD not supported on Windows");
+    // TH_ALLOCATOR_MAPPED_FROMFD 32： 0010 0000
     if (ctx->flags & TH_ALLOCATOR_MAPPED_FROMFD)
       THError("TH_ALLOCATOR_MAPPED_FROMFD not supported on Windows");
 
@@ -298,11 +301,14 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
     if (!(ctx->flags & TH_ALLOCATOR_MAPPED_FROMFD)) {
       if(ctx->flags & TH_ALLOCATOR_MAPPED_SHARED)
       {
+        // open 是系统调用！！！！！！！！！！ 返回一个 int fd， 
         if((fd = open(ctx->filename, flags, (mode_t)0600)) == -1)
           THError("unable to open file <%s> in read-write mode", ctx->filename);
       }
       else if (ctx->flags & TH_ALLOCATOR_MAPPED_SHAREDMEM)
       {
+        // 进入这个 条件后， 如果系统没有 shm_open， 会报错的。
+
 #ifdef HAVE_SHM_OPEN
         if((fd = shm_open(ctx->filename, flags, (mode_t)0600)) == -1)
           THError("unable to open shared memory object <%s> in read-write mode", ctx->filename);
@@ -376,8 +382,9 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
         THError("Error closing file <%s>", ctx->filename);
       ctx->fd = -1;
     }
-
+    // TH_ALLOCATOR_MAPPED_UNLINK 64, 0100 0000
     if (ctx->flags & TH_ALLOCATOR_MAPPED_UNLINK) {
+      // TH_ALLOCATOR_MAPPED_SHAREDMEM 2 , 0000 0010
       if (ctx->flags & TH_ALLOCATOR_MAPPED_SHAREDMEM)
       {
 #ifdef HAVE_SHM_UNLINK
@@ -389,11 +396,12 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
       }
       else
       {
+        // 用来删除文件的
         if (unlink(ctx->filename) == -1)
           THError("could not unlink file %s", ctx->filename);
       }
     }
-
+    // 映射失败，返回 空
     if(data == MAP_FAILED)
     {
       data = NULL; /* let's be sure it is NULL */
@@ -401,7 +409,7 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
     }
   }
 #endif
-
+  // 返回数据
   return data;
 } /* 文件内存映射*/
 
