@@ -148,6 +148,7 @@ void THMapAllocatorContext_free(THMapAllocatorContext *ctx)
   THFree(ctx);
 }
 
+// 这里面还负责删除文件？？？ 什么鬼，难道删除了文件，照样能玩共享内存？？？？？？
 static void *_map_alloc(void* ctx_, ptrdiff_t size)
 {
   if (size == 0)
@@ -338,6 +339,7 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
       {
         if(ctx->flags)
         {
+          // 设置文件大小， 然后就反映到了  共享内存的大小上了。
           if(ftruncate(fd, size) == -1)
             THError("unable to resize file <%s> to the right size", ctx->filename);
           if(fstat(fd, &file_stat) == -1 || file_stat.st_size < size)
@@ -382,6 +384,7 @@ static void *_map_alloc(void* ctx_, ptrdiff_t size)
         THError("Error closing file <%s>", ctx->filename);
       ctx->fd = -1;
     }
+    // 这里为什么会有 unlink，为了 什么情况而出现的？？？？？
     // TH_ALLOCATOR_MAPPED_UNLINK 64, 0100 0000
     if (ctx->flags & TH_ALLOCATOR_MAPPED_UNLINK) {
       // TH_ALLOCATOR_MAPPED_SHAREDMEM 2 , 0000 0010
@@ -422,6 +425,8 @@ static void *THMapAllocator_realloc(void* ctx, void* ptr, ptrdiff_t size) {
   return NULL;
 }
 
+// 移除共享内存的 函数
+
 static void THMapAllocator_free(void* ctx_, void* data) {
   if (data == NULL)
     return;
@@ -438,7 +443,7 @@ static void THMapAllocator_free(void* ctx_, void* data) {
     if (close(ctx->fd) == -1)
       THError("could not close file descriptor %d", ctx->fd);
   }
-
+  // 解除内存映射
   if (munmap(data, ctx->size))
     THError("could not unmap the shared memory file");
 
@@ -447,6 +452,7 @@ static void THMapAllocator_free(void* ctx_, void* data) {
     if (ctx->flags & TH_ALLOCATOR_MAPPED_SHAREDMEM)
     {
 #ifdef HAVE_SHM_UNLINK
+      // 移除掉共享的内存
       if (shm_unlink(ctx->filename) == -1)
         THError("could not unlink the shared memory file %s", ctx->filename);
 #else
