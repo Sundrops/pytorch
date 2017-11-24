@@ -83,6 +83,7 @@ static inline void init() {
   globalContext();
 }
 
+// 通过 Backend 和 ScalarType 获取 Type。。。
 static inline Type& getType(Backend p, ScalarType s) {
   return globalContext().getType(p,s);
 }

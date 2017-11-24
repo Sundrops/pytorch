@@ -21,6 +21,8 @@
 #define TH_STORAGE_FREEMEM    4
 #define TH_STORAGE_VIEW       8
 
+
+// 指向分配的空间。
 typedef struct THStorage
 {
     real *data;
