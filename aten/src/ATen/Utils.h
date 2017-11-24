@@ -7,6 +7,8 @@
 #include <sstream>
 #include <typeinfo>
 
+// 一些检查操作
+
 namespace at {
 
 #define AT_ASSERT(cond, ...) if (! (cond) ) { at::runtime_error(__VA_ARGS__); }

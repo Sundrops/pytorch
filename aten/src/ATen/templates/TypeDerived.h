@@ -10,6 +10,9 @@
 #endif
 #endif
 
+
+// 给自动生成代码准备的模板。
+
 namespace at {
 
 struct ${Type} final : public Type {

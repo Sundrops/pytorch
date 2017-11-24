@@ -30,6 +30,14 @@ struct Type;
 //
 // Note that Tensor can also be NULL, i.e. it is not associated with any underlying TensorImpl, and
 // special care must be taken to handle this.
+/*
+对于 一些 Tensor来说，都是继承自 TensorImpl 的
+struct CPUFloatTensor : public TensorImpl{
+  
+}
+*/
+
+
 struct Tensor : public detail::TensorBase {
   Tensor() : TensorBase() {}
   Tensor(TensorImpl * self, bool retain) : TensorBase(self, retain) {}

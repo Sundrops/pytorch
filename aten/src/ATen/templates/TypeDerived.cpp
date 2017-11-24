@@ -57,6 +57,8 @@ std::size_t ${Type}::elementSizeInBytes() const {
   return sizeof(${ScalarType});
 }
 
+
+// 这些 Type 在自动生成的时候，会替换成真实的 token 的。
 const char * ${Type}::typeString() {
   return "${Type}";
 }

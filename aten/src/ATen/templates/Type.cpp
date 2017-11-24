@@ -46,6 +46,9 @@ Tensor Type::tensorFromBlob(void * data, IntList sizes, const std::function<void
   }
   return tensorFromBlob(data, sizes, strides, deleter);
 }
+
+// 这个不是虚函数，实打实的。。。
+// Blob 就是底层的数据
 Tensor Type::tensorFromBlob(void * data, IntList sizes, IntList strides, const std::function<void(void*)> & deleter) {
   // size of the underlying storage is 1 bigger than the offset
   // of the last element according to stride
@@ -58,7 +61,7 @@ Tensor Type::tensorFromBlob(void * data, IntList sizes, IntList strides, const s
     size += strides[i]*(sizes[i]-1);
   }
   auto storage = storageFromBlob(data,size,deleter); // 这个是个虚函数， 由具体的 Type 实现
-  return tensor(*storage, 0, sizes, strides);  // ?????????????????????????????找不到啊
+  return tensor(*storage, 0, sizes, strides);  // 这是一个函数， 生成版中可以看得到， 就是在里面创建了一个 Tensor， 生成的代码显示没有实现，也是。。。。
 }
 Tensor Type::scalarTensor(Scalar s) const {
   if(s.isBackedByTensor())

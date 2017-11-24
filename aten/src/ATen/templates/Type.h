@@ -46,7 +46,7 @@ static inline void noop_deleter(void*) {}
 // 这边有个 Type， aten/doc 里面也有个 Type， 有什么区别？？？？？？？？？？？？？？？？ 那个的方法明显比这个多。
 
 enum class TypeID {
-  ${type_ids}
+  ${type_ids} // 这部分可以看下生成后的 TypeID
   Undefined,
   NumOptions
 };
@@ -88,6 +88,7 @@ struct AT_API Type {
 
   // example
   // virtual Tensor * add(Tensor & a, Tensor & b) = 0;
+  // 这里会自动生成一些 声明， 这个自动生成真心是很神奇啊。。。
   ${type_method_declarations}
 protected:
   Context* context;

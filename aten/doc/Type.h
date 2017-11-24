@@ -40,6 +40,8 @@ constexpr int64_t kUndefinedDimensions = std::numeric_limits<int64_t>::min();
 
 static inline void noop_deleter(void*) {}
 
+// C++11 新语法
+// TypeID tid = TypeID::CPUByte; 不会隐式转换成 int 值了
 enum class TypeID {
   CPUByte,
   CPUChar,

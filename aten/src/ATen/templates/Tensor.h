@@ -38,6 +38,7 @@ struct Type;
 //
 // Note that Tensor can also be NULL, i.e. it is not associated with any underlying TensorImpl, and
 // special care must be taken to handle this.
+
 struct Tensor : public detail::TensorBase {
   Tensor() : TensorBase() {}
   Tensor(TensorImpl * self, bool retain) : TensorBase(self, retain) {}

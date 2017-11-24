@@ -22,6 +22,7 @@ class AT_API Context {
 public:
   Context();
   // 获取Type 的工具方法
+  // 根据 Backend 和 标量类型 获得 Type， Type 不就是 标量类型 加 Backend 吗
   Type & getType(Backend p, ScalarType s) {
     initCUDAIfNeeded(p);
     auto & type = type_registry[static_cast<int>(p)][static_cast<int>(s)];
@@ -55,13 +56,16 @@ public:
   ~Context();
 
   // 注册的 generator ？？？？
+  // 一维数组： 生成器的数量
   std::unique_ptr<Generator>
     generator_registry[static_cast<int>(Backend::NumOptions)];
 
   // 注册的 type？？？
+  // type_registry[numBackend][numOptions]; 是个二维数组
   std::unique_ptr<Type> type_registry
     [static_cast<int>(Backend::NumOptions)]
     [static_cast<int>(ScalarType::NumOptions)];
+  
   THCState * thc_state;
 private:
   void initCUDAIfNeeded(Backend p) {
