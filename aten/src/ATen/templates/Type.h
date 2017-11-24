@@ -42,6 +42,9 @@ constexpr std::array<int64_t, 1> kEmptyStrides { {1} };
 
 static inline void noop_deleter(void*) {}
 
+
+// 这边有个 Type， aten/doc 里面也有个 Type， 有什么区别？？？？？？？？？？？？？？？？ 那个的方法明显比这个多。
+
 enum class TypeID {
   ${type_ids}
   Undefined,

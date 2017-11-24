@@ -74,6 +74,8 @@ enum class TypeID {
   NumOptions
 };
 
+// 只有一个上下文属性。。。。Context *context 这个上下文属性是干嘛的？
+// 其它的都是方法， Type 可用的方法之类的玩意
 
 struct AT_API Type {
   explicit Type(Context * context)

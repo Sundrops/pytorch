@@ -6,6 +6,11 @@ namespace at {
 
 struct Type;
 
+
+// 不能 复制构造，也不能 赋值。。。。。。。
+// 能知道这块 Storage 的一些信息
+// 抽象类
+// 真正指向 数据的地方 
 struct Storage {
   Storage() {}
   Storage(const Storage& other) = delete;

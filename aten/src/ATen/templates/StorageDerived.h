@@ -7,6 +7,13 @@ $th_headers
 
 namespace at {
 
+/*
+上下文：
+Type：
+Storage
+*/
+
+
 struct ${Storage} : public Storage {
 public:
   explicit ${Storage}(Context* context);

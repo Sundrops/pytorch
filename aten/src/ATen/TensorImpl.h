@@ -7,11 +7,17 @@
 
 namespace at {
 
+// 占了个坑，在哪里实现的呢？ ATen/Type.h 中
 struct Type;
 class Scalar;
 
 
 // TensorImpl 中维护了一个 被引用计数，如果引用计数为 0 则 go die
+/*
+ std::atomic<int> refcount; 引用计数
+  bool is_scalar; 是不是标量（为啥这玩意还来个标识啊）
+  Type * type_; 类型
+ */
 struct TensorImpl {
   explicit TensorImpl(Type * type)
   :  refcount(1), is_scalar(false), type_(type) {}

@@ -12,6 +12,14 @@
 
 namespace at {
 struct Type;
+// 数据这部分的设计是这样的：
+// Tensor 继承与 TensorBase， TensorBase 里面有个 TensorImpl， TensorBase 是用来管理 它的引用计数的
+// TensorImpl 里面有个 Type* ，感觉这里面才是 指向数据真身的地方。
+// Type 里面用 *data 创建了一个 Storage
+
+
+
+
 
 // Tensor is a "generic" object holding a pointer to the underlying TensorImpl object, which
 // has an embedded reference count. In this way, Tensor is similar to boost::intrusive_ptr.

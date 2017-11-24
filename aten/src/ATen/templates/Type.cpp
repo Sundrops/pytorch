@@ -57,8 +57,8 @@ Tensor Type::tensorFromBlob(void * data, IntList sizes, IntList strides, const s
     }
     size += strides[i]*(sizes[i]-1);
   }
-  auto storage = storageFromBlob(data,size,deleter);
-  return tensor(*storage, 0, sizes, strides);
+  auto storage = storageFromBlob(data,size,deleter); // 这个是个虚函数， 由具体的 Type 实现
+  return tensor(*storage, 0, sizes, strides);  // ?????????????????????????????找不到啊
 }
 Tensor Type::scalarTensor(Scalar s) const {
   if(s.isBackedByTensor())

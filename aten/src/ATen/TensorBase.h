@@ -6,7 +6,7 @@
 namespace at { namespace detail {
 
 // TensorBase is the base class for Tensor which handles the reference counting
-// 处理 regerence counting
+// Tensor的一个基类，主要用来 处理 reference counting
 
 struct TensorBase {
   TensorBase(): TensorBase(UndefinedTensor::singleton(), false) {}

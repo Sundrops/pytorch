@@ -11,9 +11,17 @@ struct THCState;
 
 namespace at {
 
+/*
+1. 检查系统是否有 CPU
+2. 保存着 THCstate
+3. 
+*/
+
+
 class AT_API Context {
 public:
   Context();
+  // 获取Type 的工具方法
   Type & getType(Backend p, ScalarType s) {
     initCUDAIfNeeded(p);
     auto & type = type_registry[static_cast<int>(p)][static_cast<int>(s)];
@@ -45,8 +53,12 @@ public:
     return thc_state;
   }
   ~Context();
+
+  // 注册的 generator ？？？？
   std::unique_ptr<Generator>
     generator_registry[static_cast<int>(Backend::NumOptions)];
+
+  // 注册的 type？？？
   std::unique_ptr<Type> type_registry
     [static_cast<int>(Backend::NumOptions)]
     [static_cast<int>(ScalarType::NumOptions)];
@@ -60,6 +72,7 @@ private:
   std::once_flag thc_init;
 };
 
+// 里面有一个静态 对象 Context。
 AT_API Context & globalContext();
 
 static inline void init() {
