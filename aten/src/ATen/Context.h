@@ -87,6 +87,7 @@ static inline Type& getType(Backend p, ScalarType s) {
   return globalContext().getType(p,s);
 }
 
+// 用来获取类型，类型用来创建 Tensor， 666
 static inline Type& CPU(ScalarType s) {
   return getType(Backend::CPU, s);
 }
