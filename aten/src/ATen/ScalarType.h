@@ -18,6 +18,23 @@ _(int64_t,Long,i) \
 _(int16_t,Short,i) \
 _(Half,Half,d)
 
+/*
+下面的 代码，预处理了之后变成
+enum class ScalarType{
+  Byte,
+  Char,
+  Double,
+  Float,
+  Int,
+  Long,
+  Short,
+  Half,
+  Undefined,
+  NumOptions
+}
+*/
+
+
 enum class ScalarType {
 #define DEFINE_ENUM(_1,n,_2) \
   n,
