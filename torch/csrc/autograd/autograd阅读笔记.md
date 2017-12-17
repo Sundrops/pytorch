@@ -12,7 +12,7 @@
 
 1. 根据 inputs 计算出 grad_fn 的 `is_volatile, is_executable, next_functions`
 2. 然后创建 grad_fn
-3. 然后创建 forward_fn 的 输出 Variable
+3. 然后创建 forward_fn 的 输出 Variable, `grad_fn` 保存在这个对象里面。
 
 > 根据 `next_functions` 就能得到 反向传导图了。
 
@@ -45,6 +45,12 @@
     3. 通过上面的循环， 可以执行完 GraphTask 中所有的 Function， 完成一次 BP
     4. NO_DEVICE 操作操作
 
+
+**梯度计算时， GraphTask 的角色是：**
+
+* 记录 BP Graph 中所有 Function 的 dependencies 
+* 记录着 还没有 准备好的 Function。(准备好的 Function 被包装成 FunctionTask，放到 ReadyQueue 中。)
+* 管理着一些 GraphTask 的属性。 
 
 **反向的时候调用 call_function(), 这个函数干了些啥？**
 
