@@ -468,6 +468,8 @@ void THTensor_(select)(THTensor *self, THTensor *src, int dimension, int64_t sli
   self->nDimension--;
 }
 
+
+// 转置 运算
 void THTensor_(transpose)(THTensor *self, THTensor *src, int dimension1, int dimension2)
 {
   int64_t z;
@@ -641,6 +643,8 @@ int THTensor_(isTransposed)(const THTensor *self)
   return 0;
 }
 
+
+// 判断是不是由一块 连续的空间存储的 Tensor
 int THTensor_(isContiguous)(const THTensor *self)
 {
   int64_t z = 1;

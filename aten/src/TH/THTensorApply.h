@@ -1,6 +1,8 @@
 #ifndef TH_TENSOR_APPLY_INC
 #define TH_TENSOR_APPLY_INC
 
+// 2_D 2个 Data
+// 3_D 3个 Data
 
 // 执行 point-wise 操作的地方
 // 因为 C 中没有重载，就这么蛋疼

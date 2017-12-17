@@ -44,7 +44,7 @@ static void THDefaultAllocator_free(void* ctx, void* ptr) {
   THFree(ptr);
 }
 
-// 创建一个 全局的 THAllocator
+// 创建一个 全局的 THAllocator， 默认的 Allocaotr
 // 里面有三个函数！！！！
 THAllocator THDefaultAllocator = {
   &THDefaultAllocator_alloc,
