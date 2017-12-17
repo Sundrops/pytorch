@@ -6,7 +6,7 @@
 namespace torch { namespace autograd {
 
 
-// 梯度的累加操作
+// 这个 Function 是留给 Leaf Parameter 用的。
 
 struct AccumulateGrad : public Function {
   AccumulateGrad(Variable variable);
