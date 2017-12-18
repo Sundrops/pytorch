@@ -831,6 +831,7 @@ void THTensor_(resizeNd)(THTensor *self, int nDimension, int64_t *size, int64_t 
   {
     if(nDimension != self->nDimension)
     {
+      // 给 resize 的结果分配空间。是 replace 修改？
       self->size = THRealloc(self->size, sizeof(int64_t)*nDimension);
       self->stride = THRealloc(self->stride, sizeof(int64_t)*nDimension);
       self->nDimension = nDimension;
@@ -839,16 +840,20 @@ void THTensor_(resizeNd)(THTensor *self, int nDimension, int64_t *size, int64_t 
     totalSize = 1;
     for(d = self->nDimension-1; d >= 0; d--)
     {
+      // 用实参 size 来给 self.size 赋值。
       self->size[d] = size[d];
+      // 用实参 stride 来给 self.stride 赋值
       if(stride && (stride[d] >= 0) )
         self->stride[d] = stride[d];
       else
       {
+        // 如果没有传  stride
         if(d == self->nDimension-1)
           self->stride[d] = 1;
         else
           self->stride[d] = self->size[d+1]*self->stride[d+1];
       }
+      // 保存 resize 之后 元素个数。为啥不直接 size[0]*size[1]*....
       totalSize += (self->size[d]-1)*self->stride[d];
     }
 
