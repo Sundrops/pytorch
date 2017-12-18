@@ -3,6 +3,7 @@
 **THNN/init.c** 里面有很多 `Check` 宏定义。
 
 
+
 ## TH
 
 * `#define THTensor          TH_CONCAT_3(TH,Real,Tensor) ` 生成Token `THRealTensor`
