@@ -46,6 +46,7 @@ THLongStorage *THTensor_(newStrideOf)(THTensor *self)
   return stride;
 }
 
+// 返回 数据指针。
 real *THTensor_(data)(const THTensor *self)
 {
   if(self->storage)
@@ -187,6 +188,8 @@ THTensor *THTensor_(newClone)(THTensor *self)
   return tensor;
 }
 
+
+// 创建一个新的 Contiguous 的 Tensor
 THTensor *THTensor_(newContiguous)(THTensor *self)
 {
   if(!THTensor_(isContiguous)(self))
@@ -252,6 +255,7 @@ void THTensor_(resize)(THTensor *self, THLongStorage *size, THLongStorage *strid
 
 void THTensor_(resizeAs)(THTensor *self, THTensor *src)
 {
+  // 不是相同 Size ，就操作一番。
   if(!THTensor_(isSameSizeAs)(self, src))
     THTensor_(resizeNd)(self, src->nDimension, src->size, NULL);
 }
