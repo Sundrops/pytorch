@@ -9,6 +9,11 @@
 * `#define THTensor          TH_CONCAT_3(TH,Real,Tensor) ` 生成Token `THRealTensor`
 * `#define THTensor_(NAME)   TH_CONCAT_4(TH,Real,Tensor_,NAME)` 生成 Token `THRealTensor_NAME`
 
+* `generic/THTensor.h` : 一些 shape，resize，创建操作。
+* `THGeneral.h` : 一些 `Check` 操作。
+
+
+
 ```c
 typedef struct THTensor
 {
@@ -48,6 +53,15 @@ typedef struct THStorage
 
 * `#define THNN_(NAME) TH_CONCAT_3(THNN_, Real, NAME) ` 生成 Token `THNN_RealNAME`
 * `THNN_CHECK_SHAPE(I1, I2)` 检查 `I1,I2` 是不是形状相同。不相同会 报错。 
+
+
+
+## THC
+
+
+## THCUNN
+
+
 
 
 ## 关键类型总结
@@ -199,6 +213,7 @@ Tensor d = CPU(kFloat).ones({3, 4});
 // CPU(kFloat) 获取 Type 对象，然后由 Type 对象创建
 // kFloat 是常量表达式。是个 ScalarType 对象。 在 ScalarType.
 ```
+
 
 ## ATEN 编译后
 
