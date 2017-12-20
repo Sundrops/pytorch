@@ -6,8 +6,8 @@
 
 ## TH
 
-* `#define THTensor          TH_CONCAT_3(TH,Real,Tensor) ` 生成Token `THRealTensor`
-* `#define THTensor_(NAME)   TH_CONCAT_4(TH,Real,Tensor_,NAME)` 生成 Token `THRealTensor_NAME`
+* `#define THTensor          TH_CONCAT_3(TH,Real,Tensor) ` 生成Token `THRealTensor`， class 的 Token(名字)。
+* `#define THTensor_(NAME)   TH_CONCAT_4(TH,Real,Tensor_,NAME)` 生成 Token `THRealTensor_NAME`， 函数的 Token(名字)。
 
 * `generic/THTensor.h` : 一些 shape，resize，创建操作。
 * `THGeneral.h` : 一些 `Check` 操作。
@@ -53,11 +53,20 @@ typedef struct THStorage
 
 **real表示任何实数类型，Float，Int， Byte， Double**
 
+```c
+typedef struct THAllocator {
+  void* (*malloc)(void*, ptrdiff_t);
+  void* (*realloc)(void*, void*, ptrdiff_t);
+  void (*free)(void*, void*);
+} THAllocator;
+```
+
 
 ## THNN
 
 * `#define THNN_(NAME) TH_CONCAT_3(THNN_, Real, NAME) ` 生成 Token `THNN_RealNAME`
 * `THNN_CHECK_SHAPE(I1, I2)` 检查 `I1,I2` 是不是形状相同。不相同会 报错。 
+* `THNN.h` 中包含 所有 `NN` 方法的声明。
 
 
 **几个疑问**
@@ -67,13 +76,47 @@ typedef struct THStorage
 
 ## THC
 
+* #define THCTensor          TH_CONCAT_3(TH,CReal,Tensor)  生成 Token `THCRealTensor` , class 的 Token(名字)。
+* #define THCTensor_(NAME)   TH_CONCAT_4(TH,CReal,Tensor_,NAME)， 生成 Token `THCRealTensor_NAME` , 函数的 Token(名字).
+
+**几个重要类型**
+```c
+typedef struct THCTensor
+{
+    int64_t *size;
+    int64_t *stride;
+    int nDimension;
+
+    THCStorage *storage;
+    ptrdiff_t storageOffset;
+    int refcount;
+
+    char flag;
+
+} THCTensor;
+```
+
+```c
+typedef struct THCStorage
+{
+    real *data;
+    ptrdiff_t size;
+    int refcount;
+    char flag;
+    THCDeviceAllocator *allocator;
+    void *allocatorContext;
+    struct THCStorage *view;
+    int device;
+} THCStorage;
+```
+
 
 ## THCUNN
 
 
 
 
-## 关键类型总结
+## ATen关键类型总结
 
 * Tensor
 * TensorBase Tensor的一个基类，主要用来 处理 reference counting

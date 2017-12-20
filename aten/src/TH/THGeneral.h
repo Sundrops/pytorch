@@ -79,6 +79,17 @@ TH_API void THInferNumThreads(void);
 // THArgCheck(condition, argNumber, char*) 
 // condition：条件表达式， argNumber ？？？。 char* 报错信息。
 // argNumber : 表示是 函数的 第几个 形参！！！！ 从 1 开始。
+// 作用： 函数的参数检查！！！！！！！！！！！！！！！
+// 一个 Demo
+/*
+int64_t THTensor_(size)(const THTensor *self, int dim)
+{
+  THArgCheck((dim >= 0) && (dim < self->nDimension), 2, "dimension %d out of range of %dD tensor",
+      dim+TH_INDEX_BASE, THTensor_(nDimension)(self));
+  return self->size[dim];
+}
+
+*/
 #define THArgCheck(...)                                               \
 do {                                                                  \
   _THArgCheck(__FILE__, __LINE__, __VA_ARGS__);                       \
