@@ -2,6 +2,8 @@
 #define TH_GENERIC_FILE "generic/THNN.h"
 #else
 
+// #define THNN_(NAME) TH_CONCAT_3(THNN_, Real, NAME) : THNN_RealName
+
 TH_API void THNN_(Abs_updateOutput)(
           THNNState *state,            // library's state
           THTensor *input,             // input tensor

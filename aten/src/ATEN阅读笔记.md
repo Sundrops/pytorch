@@ -14,6 +14,8 @@
 
 
 
+**TH中的几个重要Struct**
+
 ```c
 typedef struct THTensor
 {
@@ -58,6 +60,10 @@ typedef struct THStorage
 * `THNN_CHECK_SHAPE(I1, I2)` 检查 `I1,I2` 是不是形状相同。不相同会 报错。 
 
 
+**几个疑问**
+
+* accreal 是什么鬼 ： 在 TH/THGenerate**Type.h 中可以找到答案，就是某种 real 类型。
+* THNNState* 是个空指针, 这玩意是用来干嘛的。
 
 ## THC
 

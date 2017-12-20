@@ -46,7 +46,7 @@ THLongStorage *THTensor_(newStrideOf)(THTensor *self)
   return stride;
 }
 
-// 返回 数据指针。
+// 返回 数据指针。real指针。
 // THRealTensor_data
 real *THTensor_(data)(const THTensor *self)
 {
