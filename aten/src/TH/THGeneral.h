@@ -78,6 +78,7 @@ TH_API void THInferNumThreads(void);
 
 // THArgCheck(condition, argNumber, char*) 
 // condition：条件表达式， argNumber ？？？。 char* 报错信息。
+// argNumber : 表示是 函数的 第几个 形参！！！！ 从 1 开始。
 #define THArgCheck(...)                                               \
 do {                                                                  \
   _THArgCheck(__FILE__, __LINE__, __VA_ARGS__);                       \
