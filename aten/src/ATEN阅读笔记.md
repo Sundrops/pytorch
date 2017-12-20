@@ -49,6 +49,9 @@ typedef struct THStorage
 } THStorage;
 ```
 
+**real表示任何实数类型，Float，Int， Byte， Double**
+
+
 ## THNN
 
 * `#define THNN_(NAME) TH_CONCAT_3(THNN_, Real, NAME) ` 生成 Token `THNN_RealNAME`

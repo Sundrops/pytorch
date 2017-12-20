@@ -87,6 +87,8 @@ do if (!(condition)) {                                                \
   _THArgCheck(__FILE__, __LINE__, 0, __VA_ARGS__);                    \
 } while(0)
 
+// 断言，如果 exp 为 True， 则通过，否则 报错。 
+// _THAssertionFailed 是用来报错 和 打印错误信息的。
 #define THAssert(exp)                                                 \
 do {                                                                  \
   if (!(exp)) {                                                       \

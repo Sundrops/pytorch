@@ -47,6 +47,7 @@ THLongStorage *THTensor_(newStrideOf)(THTensor *self)
 }
 
 // 返回 数据指针。
+// THRealTensor_data
 real *THTensor_(data)(const THTensor *self)
 {
   if(self->storage)
