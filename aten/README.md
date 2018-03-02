@@ -74,6 +74,7 @@ Want this running on the GPU?
 ```c++
 using namespace at; // assumed in the following
 
+// CUDA() 是定义在 Aten/Context.h 头文件中的一个方法。返回指定的类型（Type）。然后通过调用 Type 实例的 方法来创建 Tensor。
 Tensor d = CUDA(kFloat).ones({3, 4});
 Tensor r = CUDA(kFloat).zeros({3,4})
 for(auto i = 0; i < 100000; i++) {
