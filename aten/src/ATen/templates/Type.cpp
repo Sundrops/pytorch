@@ -48,7 +48,7 @@ Tensor Type::tensorFromBlob(void * data, IntList sizes, const std::function<void
 }
 
 // 这个不是虚函数，实打实的。。。
-// Blob 就是底层的数据
+// Blob 就是底层的数据, data
 Tensor Type::tensorFromBlob(void * data, IntList sizes, IntList strides, const std::function<void(void*)> & deleter) {
   // size of the underlying storage is 1 bigger than the offset
   // of the last element according to stride
