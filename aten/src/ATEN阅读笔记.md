@@ -2,7 +2,8 @@
 
 **THNN/init.c** 里面有很多 `Check` 宏定义。
 
-
+## 预备知识 ##
+阅读ATEN库时首先需要对低层Tensor的一些基本知识进行熟悉，比如最最重要的strided indexing scheme，详见预备知识1，了解了这个策略，对后面理解一些Tensor的数据结构、操作和加速就方便多了
 
 ## TH
 
@@ -21,7 +22,7 @@ typedef struct THTensor
 {
     int64_t *size; // 表示 shape
     int64_t *stride; // stride， 假设 size 为 [3, 2, 1, 4], 那么 stride 为 [ 8, 4, 4, 1], outmost 到 innermost 的步长。
-                     // 如果 数据不是连续的， stride 就是另一种情况了。感觉 stride 就是为了 判断是否连续而生的。
+                     // 如果 数据不是连续的， stride 就是另一种情况了。详见预备知识1
     int nDimension; // 表示有几维
 
     // Note: storage->size may be greater than the recorded size
